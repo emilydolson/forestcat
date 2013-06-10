@@ -1,3 +1,7 @@
+#RAVQ module from Probot
+#Blank, D.S., Kumar, D., Meeden, L., and Yanco, H. (2006) The Pyro toolkit for AI and robotics. 
+#In AI Magzine Volume 27, Number 1
+
 import Numeric, math, random, sys
 from pyrobot.tools.circularlist import CircularList
 from pickle import *
