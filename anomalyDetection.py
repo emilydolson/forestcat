@@ -3,8 +3,9 @@ from scipy import *
 from numpy import *
 import pandas as pd
 from sensorStream import *
-from matplotlib import *
 from statsLib import *
+from evalFunctionsLib import *
+import matplotlib.pyplot as plt
 
 def readin(files):
     """
@@ -82,7 +83,8 @@ def main():
 
     print r
     print r.models
-    plot(data[1][:len(states)], states, '*')
+    plt.plot(range(1000), states, '*')
+    plotColorStatesNoNumber(states)
 
     vectors = []
     for model in r.models:
