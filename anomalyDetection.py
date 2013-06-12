@@ -41,7 +41,8 @@ def readin(files):
                         line[j] = -1
                         
             data[i].append(line)
-
+    
+    print labels
     offset = 0
     realSensorStreams=[]
     for i in range(len(data)):
@@ -55,7 +56,7 @@ def readin(files):
             times.append(data[i][j][0])
         for j in range(1+offset, len(data[i][j])+offset):
             realSensorStreams.append(SensorStream(sensorStreams[j], times, labels[j]))
-        offset += len(data[i][0]) - 2
+        offset += len(data[i][0])
     
     return realSensorStreams
 
@@ -92,20 +93,7 @@ def compareVecs(interpVecs, realVecs):
         sumDist += euclidDist(interpVecs[i], realVecs[i])
     return sumDist
 
-def main():
-    sensorStreams = readin(["wxsta1_alldat.csv", "weir1_noheader.dat"])
-    """
-    #vecs1 = []
-    #for i in range(1000):
-        #vecs1.append(getVec(sensorStreams, 5))
-
-    print sensorStreams[3]
-    vecs1 = [[i] for i in sensorStreams[3].getStream()]
-
-    vecs2 = interp(vecs1, 2)
-
-    print compareVecs(vecs2, vecs1)
-    """
+def runRAVQ(sensorStreams):
     r = ARAVQ(100, 1, .9, 2, .2)
     
     states = []
@@ -121,5 +109,35 @@ def main():
     vectors = []
     for model in r.models:
     	vectors.append(model.vector)
+
+    return r, states
+
+def removeStream(sensorStreams, name):
+    for stream in sensorStreams:
+        if stream.getLabel() == name:
+            sensorStreams.remove(stream)
+    return sensorStreams
+
+def main():
+    sensorStreams = readin(["wxsta1_alldat.csv", "weir1_noheader.dat"])
+
+    sensorStreams = removeStream(sensorStreams, "RECORD")
+    sensorStreams = removeStream(sensorStreams, "weir_lvl_TMx")
+
+    for stream in sensorStreams:
+        print stream
+    """
+    #vecs1 = []
+    #for i in range(1000):
+        #vecs1.append(getVec(sensorStreams, 5))
+
+    print sensorStreams[3]
+    vecs1 = [[i] for i in sensorStreams[3].getStream()]
+
+    vecs2 = interp(vecs1, 2)
+
+    print compareVecs(vecs2, vecs1)
+    """
+    #r, states = runRAVQ(sensorStreams)
     
 main()

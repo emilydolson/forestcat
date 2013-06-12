@@ -38,3 +38,6 @@ class SensorStream():
     
     def getStream(self):
         return self.stream
+
+    def getLabel(self):
+        return self.label
