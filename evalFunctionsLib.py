@@ -56,7 +56,7 @@ def plotColorStatesNoNumber(states):
             plt.plot(i, 1, "|", color="red")
         else:
             plt.plot(i, 1, "-")
-            print i
+            
             
 def plotColorStates(states):
     """
