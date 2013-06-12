@@ -35,3 +35,6 @@ class SensorStream():
 
     def setInactive(self):
         self.active = False
+    
+    def getStream(self):
+        return self.stream

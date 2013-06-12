@@ -1,11 +1,11 @@
 from pyrobot.brain.ravq import *
 from scipy import *
 from numpy import *
-import pandas as pd
 from sensorStream import *
 from statsLib import *
 from evalFunctionsLib import *
 import matplotlib.pyplot as plt
+from math import sqrt, isnan
 
 def readin(files):
     """
@@ -68,10 +68,44 @@ def getVec(sensorStreams,  minutes):
 
     return vec
 
+def euclidDist(x, y):
+    dist = 0
+    for i in range(len(x)):
+        if not isnan(x[i]) and not isnan(y[i]) and x[i] != -1 and y[i] != -1:
+            dist += (x[i]-y[i])**2
+    return sqrt(dist)
 
+def interp(vectors, reductionFactor):
+    newVecs = []
+    for i in range(1, len(vectors), reductionFactor):
+        for j in range(reductionFactor):
+            newVec = []
+            for k in range(len(vectors[i])):
+                newVec.append((vectors[i][k] - vectors[i-reductionFactor][k])*j/reductionFactor + vectors[i-reductionFactor][k])
+            newVecs.append(newVec)
+    return newVecs
+
+def compareVecs(interpVecs, realVecs):
+    sumDist = 0
+    print len(interpVecs), len(realVecs)
+    for i in range(min(len(interpVecs), len(realVecs))):
+        sumDist += euclidDist(interpVecs[i], realVecs[i])
+    return sumDist
 
 def main():
     sensorStreams = readin(["wxsta1_alldat.csv", "weir1_noheader.dat"])
+    """
+    #vecs1 = []
+    #for i in range(1000):
+        #vecs1.append(getVec(sensorStreams, 5))
+
+    print sensorStreams[3]
+    vecs1 = [[i] for i in sensorStreams[3].getStream()]
+
+    vecs2 = interp(vecs1, 2)
+
+    print compareVecs(vecs2, vecs1)
+    """
     r = ARAVQ(100, 1, .9, 2, .2)
     
     states = []
@@ -81,8 +115,6 @@ def main():
     	r.input(getVec(sensorStreams, 5))
     	states.append(r.newWinnerIndex)
 
-    print r
-    print r.models
     plt.plot(range(1000), states, '*')
     plotColorStatesNoNumber(states)
 
@@ -90,5 +122,4 @@ def main():
     for model in r.models:
     	vectors.append(model.vector)
     
-
 main()
