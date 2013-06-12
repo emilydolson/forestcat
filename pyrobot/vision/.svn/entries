@@ -1,0 +1,89 @@
+10
+
+dir
+2587
+http://svn.cs.brynmawr.edu/pyrobot/trunk/vision
+http://svn.cs.brynmawr.edu/pyrobot
+
+
+
+2010-08-06T00:04:51.759743Z
+2577
+dblank
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+21022541-8d97-4203-aabd-96d1d42fbb12
+
+stereo
+dir
+
+blimp
+dir
+
+tutorial
+dir
+
+Attic
+dir
+
+snaps
+dir
+
+tutorial2
+dir
+
+iarc2006
+dir
+
+__init__.py
+file
+
+
+
+
+2012-11-16T08:29:34.354259Z
+f3aa8040c97451344e10edd29b121dd7
+2009-05-06T01:44:30.810900Z
+2543
+dblank
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+36907
+
+cvision
+dir
+
+example
+dir
+

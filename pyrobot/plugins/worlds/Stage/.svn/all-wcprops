@@ -1,0 +1,113 @@
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/pyrobot/!svn/ver/2467/trunk/plugins/worlds/Stage
+END
+pioneer.inc
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/pioneer.inc
+END
+chase.world
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/pyrobot/!svn/ver/2467/trunk/plugins/worlds/Stage/chase.world
+END
+wavefront.cfg
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/pyrobot/!svn/ver/2444/trunk/plugins/worlds/Stage/wavefront.cfg
+END
+everything.world
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/everything.world
+END
+rink.pnm.gz
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/pyrobot/!svn/ver/2467/trunk/plugins/worlds/Stage/rink.pnm.gz
+END
+chatterbox.inc
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/chatterbox.inc
+END
+autolab.world
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/autolab.world
+END
+simple.world
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/simple.world
+END
+pucktarget.inc
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/pucktarget.inc
+END
+chase.cfg
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/pyrobot/!svn/ver/2467/trunk/plugins/worlds/Stage/chase.cfg
+END
+vfh.cfg
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/pyrobot/!svn/ver/2444/trunk/plugins/worlds/Stage/vfh.cfg
+END
+everything.cfg
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/pyrobot/!svn/ver/2444/trunk/plugins/worlds/Stage/everything.cfg
+END
+beacons.inc
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/beacons.inc
+END
+map.inc
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/map.inc
+END
+autolab.cfg
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/pyrobot/!svn/ver/2444/trunk/plugins/worlds/Stage/autolab.cfg
+END
+simple.cfg
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/pyrobot/!svn/ver/2444/trunk/plugins/worlds/Stage/simple.cfg
+END
+rink.pnm
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/pyrobot/!svn/ver/2467/trunk/plugins/worlds/Stage/rink.pnm
+END
+sick.inc
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/pyrobot/!svn/ver/2443/trunk/plugins/worlds/Stage/sick.inc
+END
