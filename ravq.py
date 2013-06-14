@@ -2,9 +2,11 @@
 #Blank, D.S., Kumar, D., Meeden, L., and Yanco, H. (2006) The Pyro toolkit for AI and robotics. 
 #In AI Magzine Volume 27, Number 1
 
-import Numeric, math, random, sys
+import numpy.oldnumeric as Numeric
+import math, random, sys
 from pyrobot.tools.circularlist import CircularList
 from pickle import *
+from netGNGRegion import *
 
 __author__ = "Jeremy Stober"
 __version__ = "$Revision: 2239 $"
@@ -143,7 +145,8 @@ class RAVQ:
     """
     Implements RAVQ algorithm as described in Linaker and Niklasson.
     """
-    def __init__(self, bufferSize, epsilon, delta, historySize=0):
+    def __init__(self, bufferSize, epsilon, delta, timeWindow, historySize=0):
+        self.timeWindow = timeWindow
         self.epsilon = epsilon
         self.delta = delta
         self.buffer = CircularList(bufferSize) # moving average buffer
@@ -163,6 +166,7 @@ class RAVQ:
         self.printDistance = 0
         self.newModelVector = (None, None)
         self.mapModelVector = (None, None)
+        self.regions = []
       
     # update the RAVQ
     def input(self, vec):
@@ -186,6 +190,10 @@ class RAVQ:
             self.process() 
         if self.verbosity > 2: print self
         self.time += 1
+        
+        if self.newWinnerIndex != -1:
+            self.regions[self.newWinnerIndex].inVec(vec)
+
         return (self.newWinnerIndex, self.winner)
 
     # attribute methods
@@ -280,6 +288,8 @@ class RAVQ:
         if self.movingAverageDistance <= self.epsilon and \
                self.movingAverageDistance <= self.modelVectorsDistance - self.delta:
             self.models.addItem(self.movingAverage)
+            dims = len(self.models[0].vector)
+            self.regions.append(Region(dims, dims, [], len(self.models), self.timeWindow))
             name = self.models.names[-1]
             self.newModelVector = (name, self.movingAverage)
             if self.verbosity > 1:
@@ -389,11 +399,11 @@ class ARAVQ(RAVQ):
     """
     Extends RAVQ as described in Linaker and Niklasson.
     """
-    def __init__(self, bufferSize, epsilon, delta, historySize, learningRate):
+    def __init__(self, bufferSize, epsilon, delta, historySize, learningRate, timeWindow):
         self.alpha = learningRate
         self.deltaWinner = 'No Winner'
         self.learning = 1
-        RAVQ.__init__(self, bufferSize, epsilon, delta, historySize)
+        RAVQ.__init__(self, bufferSize, epsilon, delta, timeWindow, historySize)
     def __str__(self):
         s = RAVQ.__str__(self)
         return s[:10] + "Alpha (learning rate): " + str(self.alpha) + " " + s[10:]

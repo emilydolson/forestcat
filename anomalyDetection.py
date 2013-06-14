@@ -1,4 +1,3 @@
-from pyrobot.brain.ravq import *
 from scipy import *
 from numpy import *
 from sensorStream import *
@@ -6,6 +5,9 @@ from statsLib import *
 from evalFunctionsLib import *
 import matplotlib.pyplot as plt
 from math import sqrt, isnan
+from ravq import *
+from event import *
+from pickle import *
 
 def readin(files):
     """
@@ -93,17 +95,35 @@ def compareVecs(interpVecs, realVecs):
         sumDist += euclidDist(interpVecs[i], realVecs[i])
     return sumDist
 
-def runRAVQ(sensorStreams):
-    r = ARAVQ(100, 1, .9, 2, .2)
+def runRAVQ(sensorStreams, timeInt):
+    r = ARAVQ(100, 1, .9, 2, .2, timeInt)
     
     states = []
+    events = []
+
+    observedTransitions = {}
 
     #for i in range(138349):
-    for i in range(1000):
-    	r.input(getVec(sensorStreams, 5))
+    for i in range(len(sensorStreams[0].getStream())):
+        if i%1000 == 0:
+            print sensorStreams[0].getCurrTime()
+        vec = getVec(sensorStreams, timeInt)
+    	r.input(vec)
     	states.append(r.newWinnerIndex)
-
-    plt.plot(range(1000), states, '*')
+        if r.newWinnerIndex != r.previousWinnerIndex:
+            if observedTransitions.has_key(r.previousWinnerIndex):
+                if r.newWinnerIndex not in observedTransitions[r.previousWinnerIndex]:
+                    observedTransitions[r.previousWinnerIndex].append(r.newWinnerIndex)
+                    events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
+            else:
+                observedTransitions[r.previousWinnerIndex] = [r.newWinnerIndex]
+                events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
+                    
+                    
+    for event in events:
+        print event
+    #print states
+    #plt.plot(range(10000), states, '*')
     plotColorStatesNoNumber(states)
 
     vectors = []
@@ -118,14 +138,34 @@ def removeStream(sensorStreams, name):
             sensorStreams.remove(stream)
     return sensorStreams
 
+def runTest(sensorStreams, timeInt, answers):
+    r = runRavq(sensorStreams, timeInt)
+
+def saveToFile(filename, thing):
+    fp = open(filename, 'w')
+    pick = Pickler(fp)
+    pick.dump(thing)
+    fp.close()
+
+def loadFromFile(filename):
+    fp = open(filename, 'r')
+    unpick = Unpickler(fp)
+    result = unpick.load()
+    fp.close()
+    return result
+
 def main():
-    sensorStreams = readin(["wxsta1_alldat.csv", "weir1_noheader.dat"])
+    sensorStreams = readin(["wxsta1_Table1.dat"])
 
     sensorStreams = removeStream(sensorStreams, "RECORD")
     sensorStreams = removeStream(sensorStreams, "weir_lvl_TMx")
 
     for stream in sensorStreams:
         print stream
+    r, states = runRAVQ(sensorStreams, 5)
+    saveToFile("storedRavq", r)
+    saveToFile("storedStates", states)
+    saveToFile("storedSensorStreams", sensorStreams)
     """
     #vecs1 = []
     #for i in range(1000):

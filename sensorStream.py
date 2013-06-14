@@ -41,3 +41,9 @@ class SensorStream():
 
     def getLabel(self):
         return self.label
+
+    def getTime(self, i):
+        return self.times[i]
+
+    def getCurrTime(self):
+        return self.times[self.curr]
