@@ -100,6 +100,7 @@ def runRAVQ(sensorStreams, timeInt):
     
     states = []
     events = []
+    errors = []
 
     observedTransitions = {}
 
@@ -130,7 +131,7 @@ def runRAVQ(sensorStreams, timeInt):
     for model in r.models:
     	vectors.append(model.vector)
 
-    return r, states
+    return r, states, events, errors
 
 def removeStream(sensorStreams, name):
     for stream in sensorStreams:
@@ -138,8 +139,11 @@ def removeStream(sensorStreams, name):
             sensorStreams.remove(stream)
     return sensorStreams
 
-def runTest(sensorStreams, timeInt, answers):
-    r = runRavq(sensorStreams, timeInt)
+def runTest(sensorStreams, timeInt, realErrors, realEvents):
+    r, states, recEvents, recErrors = runRavq(sensorStreams, timeInt)
+    for error in recErrors:
+        
+    
 
 def saveToFile(filename, thing):
     fp = open(filename, 'w')

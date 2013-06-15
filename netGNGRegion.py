@@ -54,6 +54,24 @@ class Region:
         if len(potErrs) > .5*len(vec):
             print "Potential errors:", potErrs
             
+    def inVecCuriosity(self, vec):
+        self.timeStep += 1
+        currSDs = []
+        for i in range(len(vec)):
+            if self.runningMeans[i] == 0:
+                self.runningMeans[i] = vec[i]
+                currSDs.append(0)
+            else:
+                #Wellford's algorithm
+                prevMean = self.runningMeans[i]
+                self.runningMeans[i] += (vec[i]-prevMean)/self.timeStep
+                self.runningSDs[i] += (vec[i]-prevMean)*(vec[i]-self.runningMeans[i])
+                currSDs.append(sqrt(self.runningSDs[i]/(self.timeStep - 1)))
+        
+        self.addExemplar(vec)
+        
+            
+
     def trainExpert(self):
         """
         Train the expert most recent exemplar.
