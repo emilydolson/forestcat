@@ -4,6 +4,7 @@
 from pyrobot.brain.conx import *
 from random import random
 from math import sqrt
+from event import *
 
 class Region:
     def __init__(self, inputVectorSize, targetVectorSize, errors, n, timeWindow):
@@ -50,9 +51,11 @@ class Region:
         for i in range(len(vec)):
             if abs(self.runningMeans[i] - vec[i]) > currSDs[i]*self.sensitivity:
                 potErrs.append(i)
-
-        if len(potErrs) > .5*len(vec):
-            print "Potential errors:", potErrs
+        
+        if len(potErrs) < .5*len(vec):
+            return potErrs
+        else:
+            return 1
             
     def inVecCuriosity(self, vec):
         self.timeStep += 1

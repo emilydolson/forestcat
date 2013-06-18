@@ -191,10 +191,11 @@ class RAVQ:
         if self.verbosity > 2: print self
         self.time += 1
         
+        errs = []
         if self.newWinnerIndex != -1:
-            self.regions[self.newWinnerIndex].inVec(vec)
+            errs = self.regions[self.newWinnerIndex].inVec(vec)
 
-        return (self.newWinnerIndex, self.winner)
+        return (self.newWinnerIndex, self.winner, errs)
 
     # attribute methods
     def getNewWinner(self):

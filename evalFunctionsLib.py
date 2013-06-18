@@ -64,7 +64,7 @@ def plotColorStates(states):
     and points are colored by state.
     Input: states - a list of ints representing the state at each time step.
     """
-    fig = plt.figure(figsize=(9.0,6))
+    fig = plt.figure(figsize=(18.0,12))
     for i in range(len(states)):
         if states[i] == -1:   
             plt.plot(i, 0, "ko", hold=True)
@@ -95,8 +95,7 @@ def plotColorStates(states):
         elif states[i] == 12:
             plt.plot(i, 13, "|", color="red")
         else:
-            plt.plot(i, 1, "-")
-            print i
+            plt.plot(i, states[i], "*", color="black")
             
 def printTransitions(states):
   for i in range(1,len(states)):

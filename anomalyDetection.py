@@ -8,6 +8,8 @@ from math import sqrt, isnan
 from ravq import *
 from event import *
 from pickle import *
+from datetime import *
+import os
 
 def readin(files):
     """
@@ -40,7 +42,7 @@ def readin(files):
                     line[j] = float(line[j])
                 except:
                     if j != 0:
-                        line[j] = -1
+                        line[j] = float("nan")
                         
             data[i].append(line)
     
@@ -55,12 +57,30 @@ def readin(files):
                     sensorStreams[k+offset].append(data[i][j][k])
                 except:
                     print len(sensorStreams), k, offset
-            times.append(data[i][j][0])
+            times.append(convertDateTime(data[i][j][0]))
         for j in range(1+offset, len(data[i][j])+offset):
             realSensorStreams.append(SensorStream(sensorStreams[j], times, labels[j]))
         offset += len(data[i][0])
     
     return realSensorStreams
+
+def convertDateTime(datestring):
+    """
+    Takes in a string representing the date and time in
+    Hubbard Brook format and return a datetime object
+    """
+    try: #convert matlab format dates
+        datestring=float(datestring)
+        return datetime.fromordinal(int(datestring)) + timedelta(days=datestring%1) - timedelta(days = 366)
+    except: #convert year-month-day format dates
+        year = int(datestring[:4])
+        month = int(datestring[5:7])
+        date = int(datestring[8:10])
+        hour = int(datestring[11:13])
+        minute = int(datestring[14:16])
+        seconds = int(datestring[17:19])
+
+        return datetime(year, month, date, hour, minute, seconds)
 
 def getVec(sensorStreams,  minutes):
     vec = []
@@ -74,7 +94,7 @@ def getVec(sensorStreams,  minutes):
 def euclidDist(x, y):
     dist = 0
     for i in range(len(x)):
-        if not isnan(x[i]) and not isnan(y[i]) and x[i] != -1 and y[i] != -1:
+        if not isnan(x[i]) and not isnan(y[i]):
             dist += (x[i]-y[i])**2
     return sqrt(dist)
 
@@ -87,6 +107,12 @@ def interp(vectors, reductionFactor):
                 newVec.append((vectors[i][k] - vectors[i-reductionFactor][k])*j/reductionFactor + vectors[i-reductionFactor][k])
             newVecs.append(newVec)
     return newVecs
+
+def checkpoint(r, states, sensorStreams, checkid=""):
+    os.mkdir("checkpoint") 
+    saveToFile("checkpoint/storedRavq", r)
+    saveToFile("checkpoint/storedStates", states)
+    saveToFile("checkpoint/storedSensorStreams", sensorStreams)
 
 def compareVecs(interpVecs, realVecs):
     sumDist = 0
@@ -102,20 +128,24 @@ def runRAVQ(sensorStreams, timeInt):
     events = []
     errors = []
 
-    observedTransitions = {}
+    #observedTransitions = {}
 
     #for i in range(138349):
     for i in range(len(sensorStreams[0].getStream())):
         if i%1000 == 0:
             print sensorStreams[0].getCurrTime()
         vec = getVec(sensorStreams, timeInt)
-    	r.input(vec)
+    	errs = r.input(vec)[3]
+        if errs != 1 and errs != []:
+            errors += errs
     	states.append(r.newWinnerIndex)
         if r.newWinnerIndex != r.previousWinnerIndex:
-            if observedTransitions.has_key(r.previousWinnerIndex):
-                if r.newWinnerIndex not in observedTransitions[r.previousWinnerIndex]:
-                    observedTransitions[r.previousWinnerIndex].append(r.newWinnerIndex)
-                    events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
+            #if observedTransitions.has_key(r.previousWinnerIndex):
+                #if r.newWinnerIndex not in observedTransitions[r.previousWinnerIndex]:
+                    #observedTransitions[r.previousWinnerIndex].append(r.newWinnerIndex)
+            events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
+        elif errs == 1:
+            events.append(Event(states[i], states[i], vec, sensorStreams[0].getTime(i)))
             else:
                 observedTransitions[r.previousWinnerIndex] = [r.newWinnerIndex]
                 events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
@@ -125,7 +155,7 @@ def runRAVQ(sensorStreams, timeInt):
         print event
     #print states
     #plt.plot(range(10000), states, '*')
-    plotColorStatesNoNumber(states)
+    #plotColorStatesNoNumber(states)
 
     vectors = []
     for model in r.models:
@@ -141,9 +171,74 @@ def removeStream(sensorStreams, name):
 
 def runTest(sensorStreams, timeInt, realErrors, realEvents):
     r, states, recEvents, recErrors = runRavq(sensorStreams, timeInt)
-    for error in recErrors:
-        
     
+    curRec = 0
+    curReal = 0
+
+    falseposError = 0
+    falsenegError = 0
+    trueposError = 0
+    truenegError = 0
+
+    falseposEvent = 0
+    falsenegEvent = 0
+    trueposEvent = 0
+    truenegEvent = 0
+    
+    for error in recErrors:
+        while error.getTime() > realErrors[currReal].getTime():
+            currReal += 1
+            falsnegError += 1
+        if error.getTime() < realErrors[currReal].getTime():
+            falseposError += 1
+        elif error.getTime() == realErrors[currReal].getTime:
+            if error.getSensor() == realErrors[currReal].getSensor():
+                trueposError += 1
+                currReal += 1
+            else:
+                it = 1
+                success = False
+                while error.getTime() == realError[currReal+it].getTime():
+                    if error.getSensor() == realErrors[currReal + it].getSensor():
+                        trueposError += 1
+                        realErrors.pop(currReal+it)
+                        success = True
+                        break
+                if not success:
+                    falseposError += 1
+       
+    truenegError = len(states)-falseposError-trueposError-falsenegError
+
+    for event in recEvents:
+        while event.getTime() > realEvents[currReal].getTime():
+            currReal += 1
+            falsnegEvent += 1
+        if event.getTime() < realEvents[currReal].getTime():
+            falseposEvent += 1
+        elif event.getTime() == realEvents[currReal].getTime:
+            trueposEvent += 1
+       
+    truenegEvent = len(states)-falseposEvent-trueposEvent-falsenegEvent
+
+    print "\nError detection statistics:"
+    print "True (?) negatives:", truenegError
+    print "True positives:", trueposError
+    print "False negatives:", falsenegError
+    print "False (?) positives:", falseposError
+    print
+    print "Accuracy:", (trueposError+truenegError)/len(states)
+    print "Sensitivity:", (trueposError)/(trueposError+falsenegError)
+    print "Specificity:", truenegError/(truenegError+falseposError)
+
+    print "\nEvent detection statistics:"
+    print "True (?) negatives:", truenegEvent
+    print "True positives:", trueposEvent
+    print "False negatives:", falsenegEvent
+    print "False (?) positives:", falseposEvent
+    print
+    print "Accuracy:", (trueposEvent+truenegEvent)/len(states)
+    print "Sensitivity:", (trueposEvent)/(trueposEvent+falsenegEvent)
+    print "Specificity:", truenegEvent/(truenegEvent+falseposEvent)
 
 def saveToFile(filename, thing):
     fp = open(filename, 'w')
@@ -159,14 +254,20 @@ def loadFromFile(filename):
     return result
 
 def main():
-    sensorStreams = readin(["wxsta1_Table1.dat"])
+    sensorStreams = readin(["wxsta1_alldat.csv"])
 
-    sensorStreams = removeStream(sensorStreams, "RECORD")
-    sensorStreams = removeStream(sensorStreams, "weir_lvl_TMx")
+    #sensorStreams = removeStream(sensorStreams, "RECORD")
+    #sensorStreams = removeStream(sensorStreams, "weir_lvl_TMx")
 
     for stream in sensorStreams:
         print stream
-    r, states = runRAVQ(sensorStreams, 5)
+    
+    #e = sensorStreams[11].scanForErrors()
+
+    #for err in e:
+        #print err
+
+    r, states, events, errors = runRAVQ(sensorStreams, 15)
     saveToFile("storedRavq", r)
     saveToFile("storedStates", states)
     saveToFile("storedSensorStreams", sensorStreams)
