@@ -113,11 +113,11 @@ def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
         os.mkdir("checkpoint"+checkid) 
     except:
         pass
-    saveToFile("checkpoint"+str(checkid)+"/storedRavq", r)
-    saveToFile("checkpoint"+str(checkid)+"/storedStates", states)
-    saveToFile("checkpoint"+str(checkid)+"/storedSensorStreams", sensorStreams)
-    saveToFile("checkpoint"+str(checkid)+"/errors", errors)
-    saveToFile("checkpoint"+str(checkid)+"/events", events)
+    saveToFile("results/checkpoint"+str(checkid)+"/storedRavq", r)
+    saveToFile("results/checkpoint"+str(checkid)+"/storedStates", states)
+    saveToFile("results/checkpoint"+str(checkid)+"/storedSensorStreams", sensorStreams)
+    saveToFile("results/checkpoint"+str(checkid)+"/errors", errors)
+    saveToFile("results/checkpoint"+str(checkid)+"/events", events)
 
 def resumeFromCheckpoint(checkid=""):
     r = loadfromfile("checkpoint"+str(checkid)+"/storedRavq")
