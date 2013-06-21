@@ -108,11 +108,23 @@ def interp(vectors, reductionFactor):
             newVecs.append(newVec)
     return newVecs
 
-def checkpoint(r, states, sensorStreams, checkid=""):
-    os.mkdir("checkpoint") 
-    saveToFile("checkpoint/storedRavq", r)
-    saveToFile("checkpoint/storedStates", states)
-    saveToFile("checkpoint/storedSensorStreams", sensorStreams)
+def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
+    try:
+        os.mkdir("checkpoint"+checkid) 
+    except:
+        pass
+    saveToFile("checkpoint"+str(checkid)+"/storedRavq", r)
+    saveToFile("checkpoint"+str(checkid)+"/storedStates", states)
+    saveToFile("checkpoint"+str(checkid)+"/storedSensorStreams", sensorStreams)
+    saveToFile("checkpoint"+str(checkid)+"/errors", errors)
+    saveToFile("checkpoint"+str(checkid)+"/events", events)
+
+def resumeFromCheckpoint(checkid=""):
+    r = loadfromfile("checkpoint"+str(checkid)+"/storedRavq")
+    states = loadFromFile("checkpoint"+str(checkid)+"/storedStates")
+    sensorStreams = loadFromFile("checkpoint"+str(checkid)+"/storedSensorStreams")
+    errors = loadFromFile("checkpoint"+str(checkid)+"/errors")
+    events = loadFromFile("checkpoint"+str(checkid)+"/events")
 
 def compareVecs(interpVecs, realVecs):
     sumDist = 0
@@ -121,21 +133,18 @@ def compareVecs(interpVecs, realVecs):
         sumDist += euclidDist(interpVecs[i], realVecs[i])
     return sumDist
 
-def runRAVQ(sensorStreams, timeInt):
-    r = ARAVQ(100, 1, .9, 2, .2, timeInt)
-    
-    states = []
-    events = []
-    errors = []
+def runRAVQ(sensorStreams, timeInt, r=None, states=[], errors=[], events=[]):
+    if r == None:
+        r = ARAVQ(100, 1, .9, 2, .2, timeInt)
 
     #observedTransitions = {}
 
-    #for i in range(138349):
     for i in range(len(sensorStreams[0].getStream())):
         if i%1000 == 0:
-            print sensorStreams[0].getCurrTime()
+            checkpoint(r, states, sensorStreams, errors, events)
+            print "Checkpoint saved at " + str(sensorStreams[0].getCurrTime())
         vec = getVec(sensorStreams, timeInt)
-    	errs = r.input(vec)[3]
+    	errs = r.input(vec)[2]
         if errs != 1 and errs != []:
             errors += errs
     	states.append(r.newWinnerIndex)
@@ -146,9 +155,6 @@ def runRAVQ(sensorStreams, timeInt):
             events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
         elif errs == 1:
             events.append(Event(states[i], states[i], vec, sensorStreams[0].getTime(i)))
-            else:
-                observedTransitions[r.previousWinnerIndex] = [r.newWinnerIndex]
-                events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
                     
                     
     for event in events:
@@ -169,9 +175,8 @@ def removeStream(sensorStreams, name):
             sensorStreams.remove(stream)
     return sensorStreams
 
-def runTest(sensorStreams, timeInt, realErrors, realEvents):
-    r, states, recEvents, recErrors = runRavq(sensorStreams, timeInt)
-    
+def runTest(realErrors, realEvents, recErrors, recEvents):
+
     curRec = 0
     curReal = 0
 
@@ -268,9 +273,8 @@ def main():
         #print err
 
     r, states, events, errors = runRAVQ(sensorStreams, 15)
-    saveToFile("storedRavq", r)
-    saveToFile("storedStates", states)
-    saveToFile("storedSensorStreams", sensorStreams)
+    checkpoint(r, states, sensorStreams, errors, events)
+    
     """
     #vecs1 = []
     #for i in range(1000):

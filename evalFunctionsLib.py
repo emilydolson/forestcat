@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 def plot_stream(stream, data, r):
     """
@@ -56,9 +57,10 @@ def plotColorStatesNoNumber(states):
             plt.plot(i, 1, "|", color="red")
         else:
             plt.plot(i, 1, "-")
+    plt.show()
             
             
-def plotColorStates(states):
+def plotColorStates(states, times):
     """
     Makes a plot in which state is on the y axis and time is on the x axis 
     and points are colored by state.
@@ -67,37 +69,56 @@ def plotColorStates(states):
     fig = plt.figure(figsize=(18.0,12))
     for i in range(len(states)):
         if states[i] == -1:   
-            plt.plot(i, 0, "ko", hold=True)
+            plt.plot(times[i], 0, "ko", hold=True)
         elif states[i] == 0:
-            plt.plot(i, 9, "|", color="LawnGreen")
+            plt.plot(times[i], 9, "|", color="LawnGreen")
         elif states[i] == 1:
-            plt.plot(i, 8, "|", color="LimeGreen")
+            plt.plot(times[i], 8, "|", color="LimeGreen")
         elif states[i] == 2:
-            plt.plot(i, 5, "|", color="teal")
+            plt.plot(times[i], 5, "|", color="teal")
         elif states[i] == 7:
-            plt.plot(i, 6, "|", color="DarkGreen")
+            plt.plot(times[i], 6, "|", color="DarkGreen")
         elif states[i] == 4:
-            plt.plot(i, 4, "b|")
+            plt.plot(times[i], 4, "b|")
         elif states[i] == 5:
-            plt.plot(i, 2, "|", color="DarkBlue")
+            plt.plot(times[i], 2, "|", color="DarkBlue")
         elif states[i] == 6:
-            plt.plot(i, 1, "|", color="purple")
+            plt.plot(times[i], 1, "|", color="purple")
         elif states[i] == 3:
-            plt.plot(i, 7, "|", color="green")
+            plt.plot(times[i], 7, "|", color="green")
         elif states[i] == 8:
-            plt.plot(i, 11, "|", color="yellow")
+            plt.plot(times[i], 11, "|", color="yellow")
         elif states[i] == 9:
-            plt.plot(i, 3, "|", color="navy")
+            plt.plot(times[i], 3, "|", color="navy")
         elif states[i] == 11:
-            plt.plot(i, 10, "|", color="GreenYellow")
+            plt.plot(times[i], 10, "|", color="GreenYellow")
         elif states[i] == 10:
-            plt.plot(i, 12, "|", color="orange")
+            plt.plot(times[i], 12, "|", color="orange")
         elif states[i] == 12:
-            plt.plot(i, 13, "|", color="red")
+            plt.plot(times[i], 13, "|", color="red")
         else:
-            plt.plot(i, states[i], "*", color="black")
+            plt.plot(times[i], states[i], "*", color="black")
             
 def printTransitions(states):
   for i in range(1,len(states)):
       if states[i-1] != states[i]:
           print data[0][i], ":", states[i-1], "->", states[i]
+
+def stateFrequency(states):
+    freqDict = {}
+    for state in states:
+        if freqDict.has_key(state):
+            freqDict[state] += 1
+        else:
+            freqDict[state] = 1.0
+            
+    for s in freqDict.keys():
+        freqDict[s] /= len(states)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ind = np.arange(len(freqDict.keys()))
+    print len(ind)
+    print len(freqDict.keys())
+    ax.bar(ind, [freqDict[i] for i in range(len(freqDict.keys())-1)], .35, color="r")
+    plt.show()
