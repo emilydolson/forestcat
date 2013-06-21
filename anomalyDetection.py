@@ -112,6 +112,7 @@ def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
     try:
         os.mkdir("results/checkpoint"+checkid) 
     except:
+        print "FAILED TO MAAKE DIR!!"
         pass
     saveToFile("results/checkpoint"+str(checkid)+"/storedRavq", r)
     saveToFile("results/checkpoint"+str(checkid)+"/storedStates", states)
