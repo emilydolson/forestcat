@@ -110,7 +110,7 @@ def interp(vectors, reductionFactor):
 
 def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
     try:
-        os.mkdir("checkpoint"+checkid) 
+        os.mkdir("results/checkpoint"+checkid) 
     except:
         pass
     saveToFile("results/checkpoint"+str(checkid)+"/storedRavq", r)
