@@ -278,6 +278,7 @@ def main():
     parser.add_option("-l", "--learningRate", dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
     parser.add_option("-f", "--sensorFiles", dest="sensorFiles", help="Files containing data to used.")
     parser.add_option("-r", "--removeStreams", dest="removeStreams", help="Streams to not use.")
+    (options, args) = parser.parse_args()
 
     sensorStreams = readin(sensorFiles)
 
