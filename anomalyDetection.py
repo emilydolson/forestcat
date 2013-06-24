@@ -9,7 +9,8 @@ from ravq import *
 from event import *
 from pickle import *
 from datetime import *
-import os
+import os, sys
+from optparse import OptionParser
 
 def readin(files):
     """
@@ -112,7 +113,6 @@ def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
     try:
         os.mkdir("results/checkpoint"+checkid) 
     except:
-        print "FAILED TO MAAKE DIR!!"
         pass
     saveToFile("results/checkpoint"+str(checkid)+"/storedRavq", r)
     saveToFile("results/checkpoint"+str(checkid)+"/storedStates", states)
@@ -134,9 +134,9 @@ def compareVecs(interpVecs, realVecs):
         sumDist += euclidDist(interpVecs[i], realVecs[i])
     return sumDist
 
-def runRAVQ(sensorStreams, timeInt, r=None, states=[], errors=[], events=[]):
+def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2, r=None, states=[], errors=[], events=[]):
     if r == None:
-        r = ARAVQ(100, 1, .9, 2, .2, timeInt)
+        r = ARAVQ(bufferSize, epsilon, delta, historySize, learningRate, timeInt)
 
     #observedTransitions = {}
 
@@ -260,10 +260,29 @@ def loadFromFile(filename):
     return result
 
 def main():
-    sensorStreams = readin(["wxsta1_alldat.csv"])
+    timeInt = 15
+    bufferSize = 100
+    epsilon = 1
+    delta = .9
+    historySize = 2
+    learningRate = .2
+    sensorFiles = ["wxsta1_alldat.csv"]
+    removeStreams = []
+    
+    parser = OptionParser()
+    parser.add_option("-t", "--timeInt", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
+    parser.add_option("-b", "--bufferSize", dest="bufferSize", type= "int", help="Buffer size for RAVQ")
+    parser.add_option("-e", "--epsilon", dest="epsilon", type="float", help="Epsilon for RAVQ")
+    parser.add_option("-d", "--delta", dest="delta", type= "float", help="Delta for RAVQ")
+    parser.add_option("-s", "--historySize", dest="historySize", type= "int", help="History size for the RAVQ.")
+    parser.add_option("-l", "--learningRate", dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
+    parser.add_option("-f", "--sensorFiles", dest="sensorFiles", help="Files containing data to used.")
+    parser.add_option("-r", "--removeStreams", dest="removeStreams", help="Streams to not use.")
 
-    #sensorStreams = removeStream(sensorStreams, "RECORD")
-    #sensorStreams = removeStream(sensorStreams, "weir_lvl_TMx")
+    sensorStreams = readin(sensorFiles)
+
+    for stream in removeStreams:
+        sensorStreams = removeStream(sensorStreams, stream)
 
     for stream in sensorStreams:
         print stream
@@ -273,7 +292,7 @@ def main():
     #for err in e:
         #print err
 
-    r, states, events, errors = runRAVQ(sensorStreams, 15)
+    r, states, events, errors = runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate)
     checkpoint(r, states, sensorStreams, errors, events)
     
     """
