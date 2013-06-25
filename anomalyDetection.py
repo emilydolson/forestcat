@@ -111,7 +111,7 @@ def interp(vectors, reductionFactor):
 
 def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
     try:
-        os.mkdir("results/checkpoint"+checkid) 
+        os.mkdir("results/checkpoint"+str(checkid)) 
     except:
         pass
     saveToFile("results/checkpoint"+str(checkid)+"/storedRavq", r)
@@ -120,12 +120,13 @@ def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
     saveToFile("results/checkpoint"+str(checkid)+"/errors", errors)
     saveToFile("results/checkpoint"+str(checkid)+"/events", events)
 
-def resumeFromCheckpoint(checkid=""):
+def resumeFromCheckpoint(timeInt, checkid="", bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2):
     r = loadfromfile("checkpoint"+str(checkid)+"/storedRavq")
     states = loadFromFile("checkpoint"+str(checkid)+"/storedStates")
     sensorStreams = loadFromFile("checkpoint"+str(checkid)+"/storedSensorStreams")
     errors = loadFromFile("checkpoint"+str(checkid)+"/errors")
     events = loadFromFile("checkpoint"+str(checkid)+"/events")
+    return runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate, checkid, r, states, errors, events)
 
 def compareVecs(interpVecs, realVecs):
     sumDist = 0
@@ -134,7 +135,7 @@ def compareVecs(interpVecs, realVecs):
         sumDist += euclidDist(interpVecs[i], realVecs[i])
     return sumDist
 
-def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2, r=None, states=[], errors=[], events=[]):
+def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2, checkid="", r=None, states=[], errors=[], events=[]):
     if r == None:
         r = ARAVQ(bufferSize, epsilon, delta, historySize, learningRate, timeInt)
 
@@ -142,7 +143,7 @@ def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, history
 
     for i in range(len(sensorStreams[0].getStream())):
         if i%1000 == 0:
-            checkpoint(r, states, sensorStreams, errors, events)
+            checkpoint(r, states, sensorStreams, errors, events, checkid)
             print "Checkpoint saved at " + str(sensorStreams[0].getCurrTime())
         vec = getVec(sensorStreams, timeInt)
     	errs = r.input(vec)[2]
@@ -268,6 +269,7 @@ def main():
     learningRate = .2
     sensorFiles = ["wxsta1_alldat.csv"]
     removeStreams = []
+    checkid = ""
     
     parser = OptionParser()
     parser.add_option("-t", "--timeInt", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
@@ -278,6 +280,7 @@ def main():
     parser.add_option("-l", "--learningRate", dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
     parser.add_option("-f", "--sensorFiles", dest="sensorFiles", help="Files containing data to used.")
     parser.add_option("-r", "--removeStreams", dest="removeStreams", help="Streams to not use.")
+    parser.add_option("-c", "--checkid", dest="checkid", help="ID of checkpoint to save files under.")
     (options, args) = parser.parse_args()
 
     sensorStreams = readin(sensorFiles)
@@ -293,7 +296,7 @@ def main():
     #for err in e:
         #print err
 
-    r, states, events, errors = runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate)
+    r, states, events, errors = runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate, checkid)
     checkpoint(r, states, sensorStreams, errors, events)
     
     """
