@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from scipy import *
 from numpy import *
 from sensorStream import *
@@ -263,27 +264,31 @@ def loadFromFile(filename):
     return result
 
 def main():
+
     timeInt = 15
     bufferSize = 100
-    epsilon = 1
     delta = .9
     historySize = 2
-    learningRate = .2
+    #learningRate = .2
     sensorFiles = ["wxsta1_alldat.csv"]
     removeStreams = []
     checkid = ""
-    
+    epsilon = 1
+
     parser = OptionParser()
-    parser.add_option("-t", "--timeInt", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
-    parser.add_option("-b", "--bufferSize", dest="bufferSize", type= "int", help="Buffer size for RAVQ")
-    parser.add_option("-e", "--epsilon", dest="epsilon", type="float", help="Epsilon for RAVQ")
-    parser.add_option("-d", "--delta", dest="delta", type= "float", help="Delta for RAVQ")
-    parser.add_option("-s", "--historySize", dest="historySize", type= "int", help="History size for the RAVQ.")
-    parser.add_option("-l", "--learningRate", dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
-    parser.add_option("-f", "--sensorFiles", dest="sensorFiles", help="Files containing data to used.")
-    parser.add_option("-r", "--removeStreams", dest="removeStreams", help="Streams to not use.")
-    parser.add_option("-c", "--checkid", dest="checkid", help="ID of checkpoint to save files under.")
-    (options, args) = parser.parse_args()
+    parser.add_option("-t", "--timeInt", default = 15, action ="store", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
+    parser.add_option("-b", "--bufferSize", default=100, action="store", dest="bufferSize", type= "int", help="Buffer size for RAVQ")
+    parser.add_option("-e", "--epsilon", default=1, action="store", dest="epsilon", type="float", help="Epsilon for RAVQ")
+    parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
+    parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
+    parser.add_option("-l", "--learningRate", action="store", default=.2, dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
+    parser.add_option("-f", "--sensorFiles", action="store",default=["wxsta1_alldat.csv"], dest="sensorFiles", help="Files containing data to used.")
+    parser.add_option("-r", "--removeStreams", action = "store", default=[], dest="removeStreams", help="Streams to not use.")
+    parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
+    (options, args) = parser.parse_args(sys.argv[1:])
+    print sys.argv
+    print options
+    print args
 
     sensorStreams = readin(sensorFiles)
 
@@ -297,6 +302,8 @@ def main():
 
     #for err in e:
         #print err
+
+    print "Running RAVQ with epsilon %, delta %, learning rate %", epsilon, delta, learningRate
 
     r, states, events, errors = runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate, checkid)
     checkpoint(r, states, sensorStreams, errors, events)
