@@ -149,7 +149,7 @@ def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, history
         vec = getVec(sensorStreams, timeInt)
     	errs = r.input(vec)[2]
         if errs != 1 and errs != []:
-            errors += errs
+            errors += [Event(sensorStreams[i].label, sensorStreams[i].getCurrTime(), vec[i]) for i in errs]
     	states.append(r.newWinnerIndex)
         if r.newWinnerIndex != r.previousWinnerIndex:
             #if observedTransitions.has_key(r.previousWinnerIndex):

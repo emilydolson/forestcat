@@ -14,6 +14,17 @@ class Event():
     def getVector(self):
         return self.vector
 
+    def equalTo(self, e):
+        return self.time == e.getTime() and self.vector == e.getVector()
+
+    def __cmp__(self, other):
+        if self.time < other.getTime():
+            return -1
+        elif self.time == other.getTime():
+            return 0
+        else:
+            return 1
+
 class Error():
     def __init__(self, sensor, time, value, flag=None):
         self.sensor = sensor
@@ -30,8 +41,14 @@ class Error():
     def getTime(self):
         return self.time
 
+    def getValue(self):
+        return self.value
+
     def getSensor(self):
         return self.sensor
+
+    def equalTo(self, e):
+        return self.time == e.getTime() and self.value == e.getValue()
 
     def __cmp__(self, other):
         if self.time < other.getTime():
