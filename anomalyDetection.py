@@ -265,15 +265,17 @@ def loadFromFile(filename):
 
 def main():
 
+    """
     timeInt = 15
     bufferSize = 100
     delta = .9
     historySize = 2
-    #learningRate = .2
+    learningRate = .2
     sensorFiles = ["wxsta1_alldat.csv"]
     removeStreams = []
     checkid = ""
     epsilon = 1
+    """
 
     parser = OptionParser()
     parser.add_option("-t", "--timeInt", default = 15, action ="store", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
@@ -281,18 +283,18 @@ def main():
     parser.add_option("-e", "--epsilon", default=1, action="store", dest="epsilon", type="float", help="Epsilon for RAVQ")
     parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
     parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
-    parser.add_option("-l", "--learningRate", action="store", default=.2, dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
+    parser.add_option("-l", "--learningRate", action="store", default=.2, nargs=1, dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
     parser.add_option("-f", "--sensorFiles", action="store",default=["wxsta1_alldat.csv"], dest="sensorFiles", help="Files containing data to used.")
     parser.add_option("-r", "--removeStreams", action = "store", default=[], dest="removeStreams", help="Streams to not use.")
     parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
-    (options, args) = parser.parse_args(sys.argv[1:])
+    (opts, args) = parser.parse_args()
     print sys.argv
-    print options
+    print opts
     print args
 
-    sensorStreams = readin(sensorFiles)
+    sensorStreams = readin(opts.sensorFiles)
 
-    for stream in removeStreams:
+    for stream in opts.removeStreams:
         sensorStreams = removeStream(sensorStreams, stream)
 
     for stream in sensorStreams:
@@ -303,9 +305,9 @@ def main():
     #for err in e:
         #print err
 
-    print "Running RAVQ with epsilon %, delta %, learning rate %", epsilon, delta, learningRate
+    print "Running RAVQ with epsilon %, delta %, learning rate %", opts.epsilon, opts.delta, opts.learningRate
 
-    r, states, events, errors = runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate, checkid)
+    r, states, events, errors = runRAVQ(sensorStreams, opts.timeInt, opts.bufferSize, opts.epsilon, opts.delta, opts.historySize, opts.learningRate, opts.checkid)
     checkpoint(r, states, sensorStreams, errors, events)
     
     """
