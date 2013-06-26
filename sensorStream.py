@@ -96,7 +96,7 @@ class SensorStream():
         print slopeSD, slopeMean
         return errors
 
-    def insertDriftError(self, range):
+    #def insertDriftError(self, range):
         
 
         
