@@ -1,6 +1,7 @@
 from math import isnan, sqrt
 from datetime import *
 from event import *
+from random import random, randrange
 
 class SensorStream():
     def __init__(self, data, times, label):
@@ -96,7 +97,33 @@ class SensorStream():
         print slopeSD, slopeMean
         return errors
 
-    #def insertDriftError(self, range):
+    def insertDriftError(self, start, stop, amount):
+        inc = amount/(stop-start)
+        curr = 0
+        for i in range(start, stop):
+            curr += inc
+            self.stream[i] += curr
+
+    def insertPersistError(self, start, stop):
+        val = self.stream[start]
+        for i in range(start, stop):
+            self.stream[i] = val
+
+    def insertErraticVals(self, sds, n):
+        mean = sum(self.stream)/float(len(self.stream))
+        sd = sum([(i-mean**2 for i in self.stream)])/float(len)
+        errs = []
+        for i in range(n):
+            val = mean
+            if random > .5:
+                val += (sds* + ((random()*2)-1))*sd
+            else:
+                val -= (sds* + ((random()*2)-1))*sd
+            
+            loc = randrange(0, len(self.stream))
+            self.stream[loc] = val
+            errs.append((loc, (val-mean)/sd))
+        return errs
         
 
         

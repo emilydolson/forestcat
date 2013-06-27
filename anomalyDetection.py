@@ -170,8 +170,6 @@ def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, history
     for model in r.models:
     	vectors.append(model.vector)
 
-    printf("Finished running RAVQ with epsilon %f, delta %f, and learning rate %f", epsilon, delta, learningRate)
-
     return r, states, events, errors
 
 def removeStream(sensorStreams, name):
