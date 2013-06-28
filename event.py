@@ -25,6 +25,9 @@ class Event():
         else:
             return 1
 
+    def __hash__(self):
+        return hash(self.time)
+
 class Error():
     def __init__(self, sensor, time, value, flag=None):
         self.sensor = sensor
@@ -58,3 +61,5 @@ class Error():
         else:
             return 1
 
+    def __hash__(self):
+        return hash((self.time, self.sensor))
