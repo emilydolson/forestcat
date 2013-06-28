@@ -173,9 +173,14 @@ def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, history
     return r, states, events, errors
 
 def removeStream(sensorStreams, name):
+    success = False
     for stream in sensorStreams:
         if stream.getLabel() == name:
             sensorStreams.remove(stream)
+            success = True
+
+    if not success:
+        print "Stream", name, "not found in list."
     return sensorStreams
 
 def runTest(realErrors, realEvents, recErrors, recEvents):
@@ -283,7 +288,7 @@ def main():
     parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
     parser.add_option("-l", "--learningRate", action="store", default=.2, nargs=1, dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
     parser.add_option("-f", "--sensorFiles", action="store",default=["wxsta1_alldat.csv"], dest="sensorFiles", help="Files containing data to used.")
-    parser.add_option("-r", "--removeStreams", action = "store", default=[], dest="removeStreams", help="Streams to not use.")
+    parser.add_option("-r", "--removeStreams", action = "store", default=[], dest="removeStreams", help="Streams to not use.", type="string")
     parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
     (opts, args) = parser.parse_args()
     print sys.argv
@@ -292,7 +297,7 @@ def main():
 
     sensorStreams = readin(opts.sensorFiles)
 
-    for stream in opts.removeStreams:
+    for stream in eval(opts.removeStreams):
         sensorStreams = removeStream(sensorStreams, stream)
 
     for stream in sensorStreams:
