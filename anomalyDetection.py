@@ -291,7 +291,7 @@ def main():
     parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
     parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
     parser.add_option("-l", "--learningRate", action="store", default=.2, nargs=1, dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
-    parser.add_option("-f", "--sensorFiles", action="store",default=["wxsta1_alldat.csv"], dest="sensorFiles", type="string", help="Files containing data to used.")
+    parser.add_option("-f", "--sensorFiles", action="store",default='["wxsta1_alldat.csv"]', dest="sensorFiles", type="string", help="Files containing data to used.")
     parser.add_option("-r", "--removeStreams", action = "store", default="[]", dest="removeStreams", help="Streams to not use.", type="string")
     parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
     (opts, args) = parser.parse_args()
