@@ -111,22 +111,26 @@ def interp(vectors, reductionFactor):
     return newVecs
 
 def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
+    if checkid == "":
+        checkid = "checkpoint"
     try:
-        os.mkdir("results/checkpoint"+str(checkid)) 
+        os.mkdir("results/"+str(checkid)) 
     except:
         pass
-    saveToFile("results/checkpoint"+str(checkid)+"/storedRavq", r)
-    saveToFile("results/checkpoint"+str(checkid)+"/storedStates", states)
-    saveToFile("results/checkpoint"+str(checkid)+"/storedSensorStreams", sensorStreams)
-    saveToFile("results/checkpoint"+str(checkid)+"/errors", errors)
-    saveToFile("results/checkpoint"+str(checkid)+"/events", events)
+    saveToFile("results/"+str(checkid)+"/storedRavq", r)
+    saveToFile("results/"+str(checkid)+"/storedStates", states)
+    saveToFile("results/"+str(checkid)+"/storedSensorStreams", sensorStreams)
+    saveToFile("results/"+str(checkid)+"/errors", errors)
+    saveToFile("results/"+str(checkid)+"/events", events)
 
 def resumeFromCheckpoint(timeInt, checkid="", bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2):
-    r = loadfromfile("checkpoint"+str(checkid)+"/storedRavq")
-    states = loadFromFile("checkpoint"+str(checkid)+"/storedStates")
-    sensorStreams = loadFromFile("checkpoint"+str(checkid)+"/storedSensorStreams")
-    errors = loadFromFile("checkpoint"+str(checkid)+"/errors")
-    events = loadFromFile("checkpoint"+str(checkid)+"/events")
+    if checkid == "":
+        checkid = "checkpoint"
+    r = loadfromfile(str(checkid)+"/storedRavq")
+    states = loadFromFile(str(checkid)+"/storedStates")
+    sensorStreams = loadFromFile(str(checkid)+"/storedSensorStreams")
+    errors = loadFromFile(str(checkid)+"/errors")
+    events = loadFromFile(str(checkid)+"/events")
     return runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate, checkid, r, states, errors, events)
 
 def compareVecs(interpVecs, realVecs):
@@ -287,7 +291,7 @@ def main():
     parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
     parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
     parser.add_option("-l", "--learningRate", action="store", default=.2, nargs=1, dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
-    parser.add_option("-f", "--sensorFiles", action="store",default=["wxsta1_alldat.csv"], dest="sensorFiles", help="Files containing data to used.")
+    parser.add_option("-f", "--sensorFiles", action="store",default=["wxsta1_alldat.csv"], dest="sensorFiles", type="string", help="Files containing data to used.")
     parser.add_option("-r", "--removeStreams", action = "store", default="[]", dest="removeStreams", help="Streams to not use.", type="string")
     parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
     (opts, args) = parser.parse_args()
@@ -295,7 +299,7 @@ def main():
     print opts
     print args
 
-    sensorStreams = readin(opts.sensorFiles)
+    sensorStreams = readin(eval(opts.sensorFiles))
 
     for stream in eval(opts.removeStreams):
         sensorStreams = removeStream(sensorStreams, stream)

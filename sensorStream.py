@@ -2,6 +2,12 @@ from math import isnan, sqrt
 from datetime import *
 from event import *
 from random import random, randrange
+from bisect import bisect_left
+
+def binary_search(a, x, lo=0, hi=None):   # can't use a to specify default for hi
+    hi = hi if hi is not None else len(a) # hi defaults to len(a)   
+    pos = bisect_left(a,x,lo,hi)          # find insertion position
+    return (pos if pos != hi and a[pos] == x else -1) # don't walk off the end
 
 class SensorStream():
     def __init__(self, data, times, label):
@@ -44,6 +50,9 @@ class SensorStream():
 
     def getTime(self, i):
         return self.times[i]
+
+    def getTimeIndex(self, time):
+        return binary_search(self.times, time)
 
     def getCurrTime(self):
         return self.times[self.curr]
