@@ -75,35 +75,45 @@ class Region:
             return vec, 1
             
     def inVecCuriosity(self, vec, prevVec):
-
+        """
+        Handles incoming vectors when curiosity module (which also handles
+        error tolerance) is active. 
+        Input: vec - the vector of sensor values for the current timestep
+        prevVec - the vector of sensor values for previous time step (so that
+        we can so what predictions they would have elicited)
+        
+        """
         self.timeStep += 1
 
+        #Calculate prediction error
         prediction = self.askExpert(prevVec)
         predErr = 0
-
         errs = []
 
         for i in range(len(vec)):
             if math.isnan(vec[i]):
                 vec[i] = prediction[i]
-                errs.append(i, self.timeStep, vec[i], prediction[i], "missing or out of range data")
+                errs.append(i, self.timeStep, vec[i], prediction[i], 
+                       "missing or out of range data")
             else:
                 predErr += (prediction[i] - vec[i])**2
 
-        currSDs = []
         print "Prediction Error:", predErr, prediction
 
+        #Computer running means and standard deviations
+        currSDs = []
         for i in range(len(vec)):
             if self.runningMeans[i] == 0:
                 self.runningMeans[i] = vec[i]
                 currSDs.append(0)
             else:
-                #Wellford's algorithm
+                #Wellford's algorithm (running means)
                 prevMean = self.runningMeans[i]
                 self.runningMeans[i] += (vec[i]-prevMean)/self.timeStep
                 self.runningSDs[i] += (vec[i]-prevMean)*(vec[i]-self.runningMeans[i])
                 currSDs.append(sqrt(self.runningSDs[i]/(self.timeStep - 1)))
 
+        #Add this vector to the neural net's training set
         self.addExemplar(prevVec, vec) #A bit self-reinforcing, but what
         self.trainExpert() #can we do about it?
         
@@ -111,17 +121,15 @@ class Region:
         for i in range(len(vec)):
             if abs(self.runningMeans[i] - vec[i]) > currSDs[i]*self.sensitivity:
                 potErrs.append(i)
-        
-        
-
         if len(potErrs) < .5*len(vec):
             return vec, potErrs
         else:
-            return vec, 1            
+            return vec, None #"None" in place of potential errors indicates that
+                     #this has been determined most likely to be a rare event
 
     def trainExpert(self):
         """
-        Train the expert most recent exemplar.
+        Train the expert on most recent exemplar.
         """
         print self.targets[-1]
         self.expert.step(input = self.inputs[-1], output = self.targets[-1])

@@ -17,7 +17,10 @@ def log(text):
     Returns boolean indicating success
     """
     try: #we don't want this crashing on non-critical exceptions
-        logfile = open("log", "a")
+        if os.path.exists("log"):
+            logfile = open("log", "a")
+        else:
+            logile = open("log", "w+")
         logfile.write(str(datetime.now()) + ": " + str(text)+"\n")
         logfile.close()
     except Exception as e:
@@ -171,7 +174,7 @@ def main():
     #Set up Amazon Web Services stuff
     s3Conn = boto.connect_s3()
     bucket = s3Conn.get_bucket("forest-cat")
-    today = datetime.fromordinal(1) #datetime.date(datetime.now())
+    today = {0 : datetime.fromordinal(1)} #dictionary so it can modified in handler
     lifecycle = Lifecycle()
     for item in ["log", "ravq", "events", "errors", "states"]:
         #set rules for transition to Glacier
@@ -213,7 +216,7 @@ def main():
         log("RAVQ stored. Handling events and errors.")
 
         #Send alerts
-        if errs != 1 and errs != []:
+        if errs != None and errs != []:
             if os.path.exists("errors"):
                 errorFile = open("errors", "a")
             else:
@@ -230,7 +233,7 @@ def main():
 
         #Handle events - Check for both event types
         if r.newWinnerIndex != r.previousWinnerIndex:
-            ev = Event(states[i-1], states[i], vec, now(), "state transition")
+            ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, now(), "state transition")
             eventAlertTransition(ev)
             log("Potential event: " + str(ev))
             if os.path.exists("events"):
@@ -256,7 +259,7 @@ def main():
         log("Timestep complete.\n\n")
 
         #If it's a new day, archive files in S3
-        if today != datetime.date(datetime.now()):
+        if today[0] != datetime.date(datetime.now()):
             for item in ["log", "ravq", "events", "errors", "states"]:
                 #store in s3
                 try: #exception handling in boto documentation is kind of vaugue
@@ -272,10 +275,8 @@ def main():
                 infile.write("")
                 infile.close()
 
-            today.replace(day=datetime.today().day, month=datetime.today().month,
-                year=datetime.today().year) #workaround because variables
-                 #local to main can't be reassigned (and "nonlocal" keyword
-                 #doesn't exist before Python 3)
+            today[0] = datetime.date(datetime.now())
+            print today, datetime.date(datetime.now())
     
     signal.signal(signal.SIGALRM, alarm_handler)
     signal.alarm(1) #go off once at start-up
