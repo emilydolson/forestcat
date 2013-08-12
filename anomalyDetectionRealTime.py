@@ -7,8 +7,8 @@ from math import sqrt, isnan
 from optparse import OptionParser
 from email.mime.text import MIMEText
 from datetime import datetime
-from boto import boto
-import os, sys, pickle, smtplib, signal
+from boto.s3.lifecycle import Lifecycle, Transition, Rule
+import os, sys, pickle, smtplib, signal, boto
 import matplotlib.pyplot as plt
 
 def log(text):
@@ -172,11 +172,11 @@ def main():
     s3Conn = boto.connect_s3()
     bucket = s3Conn.get_bucket("forest-cat")
     today = datetime.fromordinal(1) #datetime.date(datetime.now())
-    lifecycle = boto.s3.lifecycle.Lifecycle()
+    lifecycle = Lifecycle()
     for item in ["log", "ravq", "events", "errors", "states"]:
         #set rules for transition to Glacier
-        to_glacier = boto.s3.lifecycle.Transition(days=7, storage_class = "GLACIER")
-        rule = boto.s3.lifecycle.Rule(item+"Rule", item, "Enabled", transition = to_glacier)
+        to_glacier = Transition(days=7, storage_class = "GLACIER")
+        rule = Rule(item+"Rule", item, "Enabled", transition = to_glacier)
         lifecycle.append(rule)
     bucket.configure_lifecycle(lifecycle)
 
