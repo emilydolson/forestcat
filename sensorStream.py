@@ -20,9 +20,14 @@ class SensorStream():
         self.label = label
         self.curr = 0
         self.minutesElapsed = times[0]
-        self.normConst = max(data[:500])
-        if isnan(self.normConst) or self.normConst == 0 or self.normConst < 0:
-            self.normConst = 1
+        self.normConstMax = max(data)
+        self.normConstMin = min(data)
+
+        if isnan(self.normConstMax) or self.normConstMax == 0 or self.normConstMax < 0:
+            self.normConstMax = 1
+
+        if isnan(self.normConstMin) or self.normConstMin >= self.normConstMax or self.normConstMin < 0:
+            self.normConstMin = 0
 
     def __str__(self):
         return self.label + ": " + ", ".join([str(i) for i in self.stream[:3]]) + "...   ..." + ", ".join([str(i) for i in self.stream[-3:]])
@@ -31,7 +36,10 @@ class SensorStream():
         self.minutesElapsed += timedelta(minutes=mins)
         while self.minutesElapsed > self.times[self.curr+1]:
             self.curr += 1
-        return self.stream[self.curr]/self.normConst
+        return (self.stream[self.curr]-self.normConstMin)/(self.normConstMax-self.normConstMin)
+
+    def setTime(self, time):
+        self.minutesElapsed = time
 
     def isActive(self):
         return self.active
@@ -41,6 +49,9 @@ class SensorStream():
 
     def setInactive(self):
         self.active = False
+
+    def isOver(self):
+        return self.minutesElapsed + self.freq >= self.times[-1]
     
     def getStream(self):
         return self.stream
@@ -55,7 +66,7 @@ class SensorStream():
         return binary_search(self.times, time)
 
     def getCurrTime(self):
-        return self.times[self.curr]
+        return self.minutesElapsed
 
     def scanForErrors(self):
         errors = []

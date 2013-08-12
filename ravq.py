@@ -1,15 +1,13 @@
-#RAVQ module from Probot
+#RAVQ module from Pyrobot
 #Blank, D.S., Kumar, D., Meeden, L., and Yanco, H. (2006) The Pyro toolkit for AI and robotics. 
 #In AI Magzine Volume 27, Number 1
+#Modified for FoREST-Cat by Emily Dolson, 2013
 
 import numpy.oldnumeric as Numeric
 import math, random, sys
 from pyrobot.tools.circularlist import CircularList
 from pickle import *
 from netGNGRegion import *
-
-__author__ = "Jeremy Stober"
-__version__ = "$Revision: 2239 $"
 
 class ModelList(CircularList):
     def __init__(self, bucketSize=5):
@@ -145,8 +143,7 @@ class RAVQ:
     """
     Implements RAVQ algorithm as described in Linaker and Niklasson.
     """
-    def __init__(self, bufferSize, epsilon, delta, timeWindow, historySize=0):
-        self.timeWindow = timeWindow
+    def __init__(self, bufferSize, epsilon, delta, vectorSize, historySize=0):
         self.epsilon = epsilon
         self.delta = delta
         self.buffer = CircularList(bufferSize) # moving average buffer
@@ -166,10 +163,14 @@ class RAVQ:
         self.printDistance = 0
         self.newModelVector = (None, None)
         self.mapModelVector = (None, None)
-        self.regions = []
+        self.regions = [] #list of region objects
+        self.prevVec = None
+
+        #Initialize region for state -1
+        self.regions.append(Region(vectorSize, vectorSize, [], len(self.models)-1))
       
     # update the RAVQ
-    def input(self, vec):
+    def input(self, vec, prevVec=None):
         """
         Drives the ravq. For most uses, the vector categorization
         is as simple as calling ravq.input(vec) on all vec in the
@@ -178,11 +179,16 @@ class RAVQ:
         calling input will return any information necessary from the
         ravq.
         """
+        procVec = vec
+        for i in range(len(vec)):
+            if math.isnan(vec[i]):
+                procVec[i] = 0
+
         if self.verbosity > 1:
             print "Step:", self.time
         if self.verbosity > 2:
-            print vec
-        array = Numeric.array(vec, 'd')
+            print procVec
+        array = Numeric.array(procVec, 'd')
         if self.mask == None:
             self.mask = Numeric.ones(len(array), 'd')
         self.buffer.addItem(array)
@@ -192,10 +198,14 @@ class RAVQ:
         self.time += 1
         
         errs = []
-        if self.newWinnerIndex != -1:
-            errs = self.regions[self.newWinnerIndex].inVec(vec)
-
-        return (self.newWinnerIndex, self.winner, errs)
+        if self.prevVec==None:
+            #Either curiosity is off or this is the first vector
+            vec, errs = self.regions[self.newWinnerIndex+1].inVec(procVec)
+        else:
+            #Process vector using neural net
+            vec, errs = self.regions[self.newWinnerIndex+1].inVecCuriosity(vec, self.prevVec)
+            
+        return (self.newWinnerIndex, self.winner, vec, errs)
 
     # attribute methods
     def getNewWinner(self):
@@ -290,7 +300,7 @@ class RAVQ:
                self.movingAverageDistance <= self.modelVectorsDistance - self.delta:
             self.models.addItem(self.movingAverage)
             dims = len(self.models[0].vector)
-            self.regions.append(Region(dims, dims, [], len(self.models), self.timeWindow))
+            self.regions.append(Region(dims, dims, [], len(self.models)-1))
             name = self.models.names[-1]
             self.newModelVector = (name, self.movingAverage)
             if self.verbosity > 1:
@@ -400,11 +410,11 @@ class ARAVQ(RAVQ):
     """
     Extends RAVQ as described in Linaker and Niklasson.
     """
-    def __init__(self, bufferSize, epsilon, delta, historySize, learningRate, timeWindow):
+    def __init__(self, bufferSize, epsilon, delta, vectorSize, historySize, learningRate):
         self.alpha = learningRate
         self.deltaWinner = 'No Winner'
         self.learning = 1
-        RAVQ.__init__(self, bufferSize, epsilon, delta, timeWindow, historySize)
+        RAVQ.__init__(self, bufferSize, epsilon, delta, vectorSize, historySize)
     def __str__(self):
         s = RAVQ.__str__(self)
         return s[:10] + "Alpha (learning rate): " + str(self.alpha) + " " + s[10:]

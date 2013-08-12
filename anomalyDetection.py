@@ -71,17 +71,26 @@ def convertDateTime(datestring):
     Takes in a string representing the date and time in
     Hubbard Brook format and return a datetime object
     """
-    try: #convert matlab format dates
+    if datestring[0] == "A": #MODIS format
+        year = int(datestring[1:5])
+        day = int(datestring[5:])
+        return datetime(year, 1, 1, 0, 0, 0) + timedelta(day-1)
+
+    if datestring[0] == "(": #datetime object format
+        d = eval(datestring)
+        return datetime(d[0], d[1], d[2], d[3], d[4], d[5])
+
+    try: #MATLAB format
         datestring=float(datestring)
         return datetime.fromordinal(int(datestring)) + timedelta(days=datestring%1) - timedelta(days = 366)
-    except: #convert year-month-day format dates
+
+    except: #Hubbard Brook Format
         year = int(datestring[:4])
         month = int(datestring[5:7])
         date = int(datestring[8:10])
         hour = int(datestring[11:13])
         minute = int(datestring[14:16])
         seconds = int(datestring[17:19])
-
         return datetime(year, month, date, hour, minute, seconds)
 
 def getVec(sensorStreams,  minutes):
@@ -123,7 +132,7 @@ def checkpoint(r, states, sensorStreams, errors, events, checkid=""):
     saveToFile("results/"+str(checkid)+"/errors", errors)
     saveToFile("results/"+str(checkid)+"/events", events)
 
-def resumeFromCheckpoint(timeInt, checkid="", bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2):
+def resumeFromCheckpoint(timeInt, checkid="", curiosity=False, bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2):
     if checkid == "":
         checkid = "checkpoint"
     r = loadfromfile(str(checkid)+"/storedRavq")
@@ -131,7 +140,7 @@ def resumeFromCheckpoint(timeInt, checkid="", bufferSize=100, epsilon=1, delta=.
     sensorStreams = loadFromFile(str(checkid)+"/storedSensorStreams")
     errors = loadFromFile(str(checkid)+"/errors")
     events = loadFromFile(str(checkid)+"/events")
-    return runRAVQ(sensorStreams, timeInt, bufferSize, epsilon, delta, historySize, learningRate, checkid, r, states, errors, events)
+    return runRAVQ(sensorStreams, timeInt, curiosity, bufferSize, epsilon, delta, historySize, learningRate, checkid, r, states, errors, events)
 
 def compareVecs(interpVecs, realVecs):
     sumDist = 0
@@ -140,18 +149,32 @@ def compareVecs(interpVecs, realVecs):
         sumDist += euclidDist(interpVecs[i], realVecs[i])
     return sumDist
 
-def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2, checkid="", r=None, states=[], errors=[], events=[]):
+def runRAVQ(sensorStreams, timeInt, curiosity = False, bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2, checkid="", r=None, states=[], errors=[], events=[]):
+    print "Starting RAVQ"
     if r == None:
         r = ARAVQ(bufferSize, epsilon, delta, historySize, learningRate, timeInt)
+        startTimes = []
+        for stream in sensorStreams:
+            startTimes.append(stream.getCurrTime())
 
+        latest = max(startTimes)
+        for stream in sensorStreams:
+            stream.setTime(latest)
+
+        print "RAVQ set-up"
     #observedTransitions = {}
 
-    for i in range(len(sensorStreams[0].getStream())):
+    vec = getVec(sensorStreams, timeInt)
+    prevVec = None
+    i = 0
+
+    print "Taking in data. Epsilon:", epsilon
+    while not any([stream.isOver() for stream in sensorStreams]):
+        #print vec
         if i%1000 == 0:
             checkpoint(r, states, sensorStreams, errors, events, checkid)
             print "Checkpoint saved at " + str(sensorStreams[0].getCurrTime())
-        vec = getVec(sensorStreams, timeInt)
-    	errs = r.input(vec)[2]
+    	vec, errs = r.input(vec, prevVec)[2:] if curiosity else r.input(vec)[2:]
         if errs != 1 and errs != []:
             errors += [Error(sensorStreams[i].label, sensorStreams[i].getCurrTime(), vec[i]) for i in errs]
     	states.append(r.newWinnerIndex)
@@ -162,7 +185,9 @@ def runRAVQ(sensorStreams, timeInt, bufferSize=100, epsilon=1, delta=.9, history
             events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
         elif errs == 1:
             events.append(Event(states[i], states[i], vec, sensorStreams[0].getTime(i)))
-                    
+        i += 1
+        prevVec = vec
+        vec = getVec(sensorStreams, timeInt)    
                     
     for event in events:
         print event
@@ -294,10 +319,8 @@ def main():
     parser.add_option("-f", "--sensorFiles", action="store",default='["wxsta1_alldat.csv"]', dest="sensorFiles", type="string", help="Files containing data to used.")
     parser.add_option("-r", "--removeStreams", action = "store", default="[]", dest="removeStreams", help="Streams to not use.", type="string")
     parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
+    parser.add_option("-u", "--curiosity", action = "store_true", default="False", dest="curiosity", help="Use curiosity module?.")
     (opts, args) = parser.parse_args()
-    print sys.argv
-    print opts
-    print args
 
     sensorStreams = readin(eval(opts.sensorFiles))
 
@@ -312,10 +335,12 @@ def main():
     #for err in e:
         #print err
 
-    #print "Running RAVQ with epsilon %, delta %, learning rate %", opts.epsilon, opts.delta, opts.learningRate
+    print "Running RAVQ with epsilon %.1f, delta %.1f, learning rate %.1f" % (opts.epsilon, opts.delta, opts.learningRate)
 
-    r, states, events, errors = runRAVQ(sensorStreams, opts.timeInt, opts.bufferSize, opts.epsilon, opts.delta, opts.historySize, opts.learningRate, opts.checkid)
-    checkpoint(r, states, sensorStreams, errors, events)
+    r, states, events, errors = runRAVQ(sensorStreams, opts.timeInt, opts.curiosity, opts.bufferSize, opts.epsilon, opts.delta, opts.historySize, opts.learningRate, opts.checkid)
+
+    print states
+    #checkpoint(r, states, sensorStreams, errors, events)
     
     """
     #vecs1 = []

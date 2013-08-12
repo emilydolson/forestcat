@@ -1,15 +1,19 @@
 class Event():
-    def __init__(self, prevState, newState, vector, time):
+    def __init__(self, prevState, newState, vector, time, reason=None):
         self.prevState = prevState
         self.newState = newState
         self.vector = vector
         self.time = time
-        
+        self.reason = reason
+
     def __str__(self):
-        return str(self.prevState) + " -> " + str(self.newState) + ": " + str(self.time)
+        return str(self.prevState) + " -> " + str(self.newState) + ": " + str(self.time) + " " + self.reason
 
     def getTime(self):
         return self.time
+
+    def getReason(self):
+        return self.reason
 
     def getVector(self):
         return self.vector
@@ -29,11 +33,12 @@ class Event():
         return hash(self.time)
 
 class Error():
-    def __init__(self, sensor, time, value, flag=None):
+    def __init__(self, sensor, time, value, replaced = None, flag=None):
         self.sensor = sensor
         self.time = time
         self.value = value
         self.flag = flag
+        self.replaced = replaced
         
     def __str__(self):
         if self.flag != None:

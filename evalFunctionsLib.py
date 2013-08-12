@@ -114,7 +114,8 @@ def stateFrequency(states):
             
     for s in freqDict.keys():
         freqDict[s] /= len(states)
-
+    
+    """
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ind = np.arange(len(freqDict.keys()))
@@ -122,3 +123,5 @@ def stateFrequency(states):
     print len(freqDict.keys())
     ax.bar(ind, [freqDict[i] for i in range(len(freqDict.keys())-1)], .35, color="r")
     plt.show()
+    """
+    return freqDict
