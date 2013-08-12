@@ -7,7 +7,8 @@ from math import sqrt, isnan
 from optparse import OptionParser
 from email.mime.text import MIMEText
 from datetime import datetime
-import os, sys, boto, pickle, smtplib, signal
+from boto import boto
+import os, sys, pickle, smtplib, signal
 import matplotlib.pyplot as plt
 
 def log(text):
