@@ -198,31 +198,26 @@ def main():
         log("Input processed: " + str(vec))
 
         #Save state categorization
-        try: #we don't want this crashing on non-critical exceptions
+        if os.path.exists("states"):
             stateFile = open("states", "a")
             stateFile.write(str(r.newWinnerIndex) +"\n")
             stateFile.close()
-        except Exception as e:
-            log("Failed to record state, with exception " + str(e) + " State was " + str(r.newWinnerIndex))
-            sendEmail("Received exception " + str(e) + "while trying to open state file at " + 
-                    str(now()) + "State was " + str(r.newWinnerIndex), 
-                    "FoREST-cat state file fail", "seaotternerd@gmail.com")
+        else:
+            stateFile = open("states", "w+")
+            stateFile.write(str(r.newWinnerIndex) +"\n")
+            stateFile.close()
 
         #save RAVQ
         saveToFile("ravq", r)
         log("RAVQ stored. Handling events and errors.")
 
-        errorFile = None #initialize errorfile
-
         #Send alerts
         if errs != 1 and errs != []:
-            try: #we don't want this crashing on non-critical exceptions
+            if os.path.exists("errors"):
                 errorFile = open("errors", "a")
-            except Exception as e:
-                log("Failed to open error file, with exception " + str(e))
-                sendEmail("Received execption " + str(e) + "while trying to open error file at " + str(now()), 
-                      "FoREST-cat error file fail", "seaotternerd@gmail.com")
-            
+            else:
+                errorFile = open("errors", "w+")
+        
             for e in errs:
                 log(str(e))
                 errorAlert(e)
@@ -230,35 +225,33 @@ def main():
                     errorFile.write(e.sensor + ", " + str(e.time) + ", " + str(e.value) + ", " 
                            + e.flag + ", " + str(e.replace) + "\n")
 
-        if errorFile != None:
             errorFile.close()
 
-        #Handle events
-        try: #we don't want this crashing on non-critical exceptions
-            eventFile = open("events", "a")
-        except Exception as e:
-            log("Failed to open event file, with exception " + str(e))
-            sendEmail("Received execption " + str(e) + "while trying to open event file at " + str(now()), 
-                      "FoREST-cat error file fail", "seaotternerd@gmail.com")
-
-        #Check for both event types
+        #Handle events - Check for both event types
         if r.newWinnerIndex != r.previousWinnerIndex:
             ev = Event(states[i-1], states[i], vec, now(), "state transition")
             eventAlertTransition(ev)
             log("Potential event: " + str(ev))
-            if eventFile != None:
-                eventFile.write(str(ev.prevState) + ", " + str(ev.newState) + ", " 
-                       + str(ev.vector) + ", " + str(ev.time) + ", " + ev.reason + "\n")
-                eventFile.close()
+            if os.path.exists("events"):
+                eventFile = open("events", "a")
+            else:
+                eventFile = open("events", "w+")
+            eventFile.write(str(ev.prevState) + ", " + str(ev.newState) + ", " 
+                     + str(ev.vector) + ", " + str(ev.time) + ", " + ev.reason + "\n")
+            eventFile.close()
 
         elif errs == 1:
             ev = Event(states[i], states[i], vec, now(), "anomalous number of errors")
             eventAlertAnomaly(ev)
             log("Potential event: " + str(ev))
-            if eventFile != None:
-                eventFile.write(str(ev.prevState) + ", " + str(ev.newState) + ", " + 
+            if os.path.exists("events"):
+                eventFile = open("events", "a")
+            else:
+                eventFile = open("events", "w+")
+            eventFile.write(str(ev.prevState) + ", " + str(ev.newState) + ", " + 
                     str(ev.vector) + ", " + str(ev.time) + ", " + ev.reason + "\n")
-                eventFile.close()
+            eventFile.close()
+
         log("Timestep complete.\n\n")
 
         #If it's a new day, archive files in S3
@@ -270,17 +263,13 @@ def main():
                     key.key = item+str(today)
                     key.set_contents_from_filename(item)
                 except Exception as e:
-                    sendEmail("Received execption " + str(e). 
+                    sendEmail("Received execption " + str(e), 
                       "Something went wrong in boto", "seaotternerd@gmail.com")  
 
                 #clear old files
-                if os.path.exists(item): #this path should really exist
-                    infile = open(item, "w")
-                    infile.write("")
-                    infile.close()
-                else:
-                    infile = open(item, "w+")
-                    infile.close()
+                infile = open(item, "w+")
+                infile.write("")
+                infile.close()
 
             today.replace(day=datetime.today().day, month=datetime.today().month,
                 year=datetime.today().year) #workaround because variables
