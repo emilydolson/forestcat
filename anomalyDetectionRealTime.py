@@ -7,7 +7,7 @@ from math import sqrt, isnan
 from optparse import OptionParser
 from email.mime.text import MIMEText
 from datetime import datetime
-from boto.s3.lifecycle import Lifecycle, Transition, Rule
+from boto.s3.lifecycle import Lifecycle, Rule, Transition
 import os, sys, pickle, smtplib, signal, boto
 import matplotlib.pyplot as plt
 

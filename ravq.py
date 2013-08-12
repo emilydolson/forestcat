@@ -4,9 +4,8 @@
 #Modified for FoREST-Cat by Emily Dolson, 2013
 
 import numpy.oldnumeric as Numeric
-import math, random, sys
+import math, random, sys, pickle
 from pyrobot.tools.circularlist import CircularList
-from pickle import *
 from netGNGRegion import *
 
 class ModelList(CircularList):
@@ -371,13 +370,13 @@ class RAVQ:
 
     def saveModelsToFile(self, filename):
         fp = open(filename, 'w')
-        pick = Pickler(fp)
+        pick = pickle.Pickler(fp)
         pick.dump(self.models)
         fp.close()
 
     def loadModelsFromFile(self, filename):
         fp = open(filename, 'r')
-        unpick = Unpickler(fp)
+        unpick = pickle.Unpickler(fp)
         self.models = unpick.load()
         fp.close()
 
