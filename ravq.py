@@ -164,6 +164,7 @@ class RAVQ:
         self.mapModelVector = (None, None)
         self.regions = [] #list of region objects
         self.prevVec = None
+        self.eventState = False #keep track of start of events
 
         #Initialize region for state -1
         self.regions.append(Region(vectorSize, vectorSize, [], len(self.models)-1))
@@ -178,9 +179,9 @@ class RAVQ:
         calling input will return any information necessary from the
         ravq.
         """
-        procVec = vec
+        procVec = [i.value for i in vec]
         for i in range(len(vec)):
-            if math.isnan(vec[i]):
+            if math.isnan(vec[i].value):
                 procVec[i] = 0
 
         if self.verbosity > 1:

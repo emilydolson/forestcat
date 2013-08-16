@@ -65,6 +65,8 @@ class Region:
                 currSDs.append(sqrt(self.runningSDs[i]/(self.timeStep - 1)))
 
         potErrs = []
+        
+        """
         for i in range(len(vec)):
             if abs(self.runningMeans[i] - vec[i]) > currSDs[i]*self.sensitivity:
                 potErrs.append(i)
@@ -73,6 +75,8 @@ class Region:
             return vec, potErrs
         else:
             return vec, 1
+        """
+        return vec, None
             
     def inVecCuriosity(self, vec, prevVec):
         """
@@ -86,17 +90,17 @@ class Region:
         self.timeStep += 1
 
         #Calculate prediction error
-        prediction = self.askExpert(prevVec)
+        prediction = self.askExpert([i.value for i in prevVec])
         predErr = 0
         errs = []
 
         for i in range(len(vec)):
-            if math.isnan(vec[i]):
-                vec[i] = prediction[i]
-                errs.append(i, self.timeStep, vec[i], prediction[i], 
-                       "missing or out of range data")
+            if math.isnan(vec[i].value):
+                vec[i].value = prediction[i]
+                errs.append(Error(vec[i].source+" "+vec[i].name, vec[i].time, vec[i].value, prediction[i], 
+                       "missing or out of range data"))
             else:
-                predErr += (prediction[i] - vec[i])**2
+                predErr += (prediction[i] - vec[i].value)**2
 
         print "Prediction Error:", predErr, prediction
 
@@ -104,13 +108,13 @@ class Region:
         currSDs = []
         for i in range(len(vec)):
             if self.runningMeans[i] == 0:
-                self.runningMeans[i] = vec[i]
+                self.runningMeans[i] = vec[i].value
                 currSDs.append(0)
             else:
                 #Wellford's algorithm (running means)
                 prevMean = self.runningMeans[i]
-                self.runningMeans[i] += (vec[i]-prevMean)/self.timeStep
-                self.runningSDs[i] += (vec[i]-prevMean)*(vec[i]-self.runningMeans[i])
+                self.runningMeans[i] += (vec[i].value-prevMean)/self.timeStep
+                self.runningSDs[i] += (vec[i].value-prevMean)*(vec[i].value-self.runningMeans[i])
                 currSDs.append(sqrt(self.runningSDs[i]/(self.timeStep - 1)))
 
         #Add this vector to the neural net's training set
@@ -119,8 +123,10 @@ class Region:
         
         potErrs = []
         for i in range(len(vec)):
-            if abs(self.runningMeans[i] - vec[i]) > currSDs[i]*self.sensitivity:
-                potErrs.append(i)
+            if abs(self.runningMeans[i] - vec[i].value) > currSDs[i]*self.sensitivity or vec[i].replaced:
+                potErrs.append(Error(vec[i].source+" "+vec[i].name, vec[i].time, vec[i].value, vec[i].replaced, (vec[i].flag if vec[i].flag==None else "Abnormal value")))
+            else:
+                vec[i].sensor.errorState = False
         if len(potErrs) < .5*len(vec):
             return vec, potErrs
         else:
