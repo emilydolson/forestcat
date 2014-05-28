@@ -36,8 +36,7 @@ from math import sqrt, isnan
 from optparse import OptionParser
 from email.mime.text import MIMEText
 from datetime import datetime
-from boto.s3.lifecycle import Lifecycle, Rule, Transition
-import os, sys, pickle, smtplib, signal, boto, subprocess
+import os, sys, pickle, smtplib, signal, subprocess
 import matplotlib.pyplot as plt
 
 def log(text):
@@ -193,6 +192,7 @@ def main():
     parser.add_option("-C", "--config-file", action = "store", default="forestcat.config", dest="config", help="Configuration file")
     parser.add_option("-i", "--inject-eratics", action = "store_true", default=False, dest="injectEratics", help="Inject simulated eratic errors into data.")
     (opts, args) = parser.parse_args()
+    parser.add_option("--test", action = "store_true", default=False, dest="test", help="Run FoREST-cat in test mode.")
 
     print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
 
@@ -227,16 +227,20 @@ def main():
         log("RAVQ generated.")
 
     #Set up Amazon Web Services stuff
-    s3Conn = boto.connect_s3()
-    bucket = s3Conn.get_bucket("forest-cat")
+    if not opts.test:
+        from boto.s3.lifecycle import Lifecycle, Rule, Transition
+        import boto
+        s3Conn = boto.connect_s3()
+        bucket = s3Conn.get_bucket("forest-cat")
+        lifecycle = Lifecycle()
+        for item in ["log", "ravq", "events", "errors", "states"]:
+            #set rules for transition to Glacier
+            to_glacier = Transition(days=7, storage_class = "GLACIER")
+            rule = Rule(item+"Rule", item, "Enabled", transition = to_glacier)
+            lifecycle.append(rule)
+        bucket.configure_lifecycle(lifecycle)
+
     today = {0: datetime.date(datetime.now())} #dictionary so it can modified in handler
-    lifecycle = Lifecycle()
-    for item in ["log", "ravq", "events", "errors", "states"]:
-        #set rules for transition to Glacier
-        to_glacier = Transition(days=7, storage_class = "GLACIER")
-        rule = Rule(item+"Rule", item, "Enabled", transition = to_glacier)
-        lifecycle.append(rule)
-    bucket.configure_lifecycle(lifecycle)
 
     def alarm_handler(signum, frame):
         """
@@ -348,7 +352,7 @@ def main():
         log("RAVQ stored. Handling events and errors.")
 
         #If it's a new day, archive files in S3
-        if today[0] != datetime.date(datetime.now()):
+        if today[0] != datetime.date(datetime.now()) and not opts.test:
             for item in ["log", "ravq", "events", "errors", "states"]:
                 #store in s3
                 try: #exception handling in boto documentation is kind of vaugue
