@@ -1,8 +1,31 @@
-#Adapted by Emily Dolson from code from the pyrobot pyrobot project, 
-#originally modified for CS81 at Swarthmore College
-#Spring 2012, by Lisa Meeden
+"""
+This module implements a Resource Allocating Vector Quantizer (RAVQ) and 
+described by Linaker and Niklasson, 2006
 
-from pyrobot.brain.conx import *
+Adapted for FoREST-cat by Emily Dolson from code from the pyrobot  project, 
+originally modified for CS81 at Swarthmore College
+Spring 2012, by Lisa Meeden
+
+Copyright 2012-2013, Emily Dolson, distributed under the Affero GNU Public
+License.
+
+    This file is part of FoREST-cat.
+
+    FoREST-cat is free software: you can redistribute it and/or modify
+    it under the terms of the Affero GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FoREST-cat is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Affero GNU General Public License for more details.
+
+    You should have received a copy of the Affero GNU General Public License
+    along with FoREST-cat.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+from conx import *
 from random import random
 from math import sqrt
 from event import *
@@ -65,17 +88,7 @@ class Region:
                 currSDs.append(sqrt(self.runningSDs[i]/(self.timeStep - 1)))
 
         potErrs = []
-        
-        """
-        for i in range(len(vec)):
-            if abs(self.runningMeans[i] - vec[i]) > currSDs[i]*self.sensitivity:
-                potErrs.append(i)
-        
-        if len(potErrs) < .5*len(vec):
-            return vec, potErrs
-        else:
-            return vec, 1
-        """
+ 
         return vec, None
             
     def inVecCuriosity(self, vec, prevVec):
@@ -88,17 +101,22 @@ class Region:
         
         """
         self.timeStep += 1
+        
+        if prevVec == None:
+             vec = [i.value for i in vec]
+             for i in range(len(vec)):
+                 if math.isnan(vec[i].value):
+                     procVec[i] = 0
+        else:
+            #Calculate prediction error
+            prediction = self.askExpert([i.value for i in prevVec])
+            predErr = 0
+            errs = []
 
-        #Calculate prediction error
-        prediction = self.askExpert([i.value for i in prevVec])
-        predErr = 0
-        errs = []
-
-        for i in range(len(vec)):
-            if math.isnan(vec[i].value):
-                vec[i].value = prediction[i]
-                errs.append(Error(vec[i].source+" "+vec[i].name, vec[i].time, vec[i].value, prediction[i], 
-                       "missing or out of range data"))
+            for i in range(len(vec)):
+                if math.isnan(vec[i].value):
+                    vec[i].value = prediction[i]
+                    errs.append(Error(vec[i].source+" "+vec[i].name, vec[i].time, vec[i].value, prediction[i], "missing or out of range data"))
             else:
                 predErr += (prediction[i] - vec[i].value)**2
 

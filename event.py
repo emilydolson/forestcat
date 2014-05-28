@@ -1,5 +1,5 @@
 class Event():
-    def __init__(self, prevState, newState, vector, time, reason=None):
+    def __init__(self, prevState, newState, vector, time, reason="None"):
         self.prevState = prevState
         self.newState = newState
         self.vector = vector

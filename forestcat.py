@@ -1,5 +1,34 @@
 #!/usr/bin/python
 
+"""
+FoREST-cat is a program for detecting errors and rare events in real-time 
+wireless sensor network data. It guesses which anomalies are errors and
+which are rare events by looking at data from a variety of sensors at once.
+
+Copyright 2012-2013, Emily Dolson, distributed under the Affero GNU Public
+License.
+"""
+
+__author__= "Emily Dolson <EmilyLDolson@gmail.com>"
+__version__= "1.0"
+
+"""
+    This file is part of FoREST-cat.
+
+    FoREST-cat is free software: you can redistribute it and/or modify
+    it under the terms of the Affero GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FoREST-cat is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Affero GNU General Public License for more details.
+
+    You should have received a copy of the Affero GNU General Public License
+    along with FoREST-cat.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 from realTimeSensorStreams import *
 from ravq import *
 from event import *
@@ -65,7 +94,9 @@ def errorAlert(err):
         msg += "In order to continue with the functioning of the algorithm, this value was replaced with" + str(err.replaced) + "."
     msg += "The FoREST-cat algorithm has flagged this value as likely to be an error. This is just a prediction -"
     msg += " this value may, instead, be the result of a rare event.\n\n"
-    msg += "Is this really an error? Email Emily at EmilyLDolson@gmail.com and let her know."
+    msg += "Please help improve FoREST-cat by answering a 2-question survey: "
+    msg += "https://docs.google.com/forms/d/1bgDqDnBTGfrt_qgotQcOmdFZ8EHqVY7UiKi1SWZB1-c/viewform?entry.1751902321=Cannot+be+determined&entry.1322398871=Maybe&entry.1034004670=Unknown&entry.234465177\n\n"
+    msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential sensor error", "EmilyLDolson@gmail.com")
 
 def eventAlertTransition(eve):
@@ -76,11 +107,12 @@ def eventAlertTransition(eve):
     """
     msg = "A potential rare event has been detected at " + str(eve.getTime()) + ".\n\n"
     msg += "The FoREST-cat algorithm has flagged this value as likely to be a rare event, rather than an error. This is just a prediction -"
-    msg += " this value may, instead, be the result of an erorr. It's also possible that this event isn't particularly rare or interesting.\n\n"
+    msg += " this value may, instead, be the result of an erorr. It's also possible that this event isn't particularly rare or interesting, in which case you may or may not think it's actually worth being alerted to.\n\n"
     msg += "This potential event was flagged because of a change in category. This may be a shift into a rare category, or simply a shift"
     msg += " between two similar categories. Thus, it has a fairly high potential to not be interesting.\n\n"
-    msg += "Is this really an error? If not, is this a useful event to be alerted to? Does it seem associated with a legitimate shift in the system?"
-    msg += "Email Emily at EmilyLDolson@gmail.com and let her know."
+    msg += "Please help improve FoREST-cat by answering a 2-question survey: "
+    msg += "https://docs.google.com/forms/d/11gw-_Mo2Hn0C7dolZbVQKf46M5DAdSLqfOC6IxQdeyw/viewform?entry.1751902321=Cannot+be+determined&entry.2112662628=Transition&entry.1322398871=Maybe&entry.1034004670&entry.234465177\n\n"
+    msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
 
 def eventAlertAnomalous(eve):
@@ -93,7 +125,9 @@ def eventAlertAnomalous(eve):
     msg += "The FoREST-cat algorithm has flagged this value as likely to be a rare event, rather than an error. This is just a prediction. \n\n"
     msg += "This potential event was flagged because of a high number of anomalous values occuring at the same time. It is possible that all of these"
     msg += " sensors are reporting erroneous values.\n"
-    msg += "Is this really a bunch of errors? If not, is this a useful event to be alerted to? Email Emily at EmilyLDolson@gmail.com and let her know."
+    msg += "Please help improve FoREST-cat by answering a 2-question survey: "
+    msg += "https://docs.google.com/forms/d/11gw-_Mo2Hn0C7dolZbVQKf46M5DAdSLqfOC6IxQdeyw/viewform?entry.1751902321=Cannot+be+determined&entry.2112662628=Anomalous+values&entry.1322398871=Maybe&entry.1034004670&entry.234465177\n\n"
+    msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
 
 def saveToFile(filename, thing):
@@ -157,7 +191,10 @@ def main():
     parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
     parser.add_option("-r", "--restart", action = "store_true", default=False, dest="restart", help="Restart from previous run?")
     parser.add_option("-C", "--config-file", action = "store", default="forestcat.config", dest="config", help="Configuration file")
+    parser.add_option("-i", "--inject-eratics", action = "store_true", default=False, dest="injectEratics", help="Inject simulated eratic errors into data.")
     (opts, args) = parser.parse_args()
+
+    print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
 
     #Initialize data
     try:
@@ -171,6 +208,8 @@ def main():
     sensors = SensorArray(opts.config, datetime(2013, 7, 25, 1, 1, 1))
     initData = sensors.getNext(opts.timeInt) #this doesn't get input
                 #if we want to be really efficient, fix this one day
+
+    saveToFile("sensors", sensors)
 
     #Initialize ravq
     if opts.restart:

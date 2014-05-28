@@ -12,6 +12,7 @@ from pickle import *
 from datetime import *
 import os, sys
 from optparse import OptionParser
+from realTimeSensorStreams import *
 
 def readin(files):
     """
@@ -152,7 +153,7 @@ def compareVecs(interpVecs, realVecs):
 def runRAVQ(sensorStreams, timeInt, curiosity = False, bufferSize=100, epsilon=1, delta=.9, historySize=2, learningRate=.2, checkid="", r=None, states=[], errors=[], events=[]):
     print "Starting RAVQ"
     if r == None:
-        r = ARAVQ(bufferSize, epsilon, delta, historySize, learningRate, timeInt)
+        r = ARAVQ(bufferSize, epsilon, delta, len(sensorStreams), historySize, learningRate)
         startTimes = []
         for stream in sensorStreams:
             startTimes.append(stream.getCurrTime())
@@ -165,32 +166,41 @@ def runRAVQ(sensorStreams, timeInt, curiosity = False, bufferSize=100, epsilon=1
     #observedTransitions = {}
 
     vec = getVec(sensorStreams, timeInt)
+    vec = [rtSensorValue(i, sensorStreams[i].getCurrTime(), vec[i]) for i in range(len(vec))]
     prevVec = None
     i = 0
 
-    print "Taking in data. Epsilon:", epsilon
+    print "Taking in data. Epsilon:", r.epsilon
     while not any([stream.isOver() for stream in sensorStreams]):
         #print vec
-        if i%1000 == 0:
+        if i%100 == 0:
             checkpoint(r, states, sensorStreams, errors, events, checkid)
+            saveToFile("recErrors" + checkid, errors)
+            saveToFile("length" + checkid, len(states))
+            
             print "Checkpoint saved at " + str(sensorStreams[0].getCurrTime())
     	vec, errs = r.input(vec, prevVec)[2:] if curiosity else r.input(vec)[2:]
-        if errs != 1 and errs != []:
-            errors += [Error(sensorStreams[i].label, sensorStreams[i].getCurrTime(), vec[i]) for i in errs]
+        if errs != None and errs != []:
+            errors += errs
     	states.append(r.newWinnerIndex)
         if r.newWinnerIndex != r.previousWinnerIndex:
             #if observedTransitions.has_key(r.previousWinnerIndex):
                 #if r.newWinnerIndex not in observedTransitions[r.previousWinnerIndex]:
                     #observedTransitions[r.previousWinnerIndex].append(r.newWinnerIndex)
             events.append(Event(states[i-1], states[i], vec, sensorStreams[0].getTime(i)))
-        elif errs == 1:
-            events.append(Event(states[i], states[i], vec, sensorStreams[0].getTime(i)))
+        elif errs == None:
+            events.append(Event(r.previousWinnerIndex, r.newWinnerIndex, vec, sensorStreams[0].getTime(sensorStreams[0].curr), "anomalous number of errors"))
         i += 1
         prevVec = vec
-        vec = getVec(sensorStreams, timeInt)    
-                    
-    for event in events:
-        print event
+        vec = getVec(sensorStreams, timeInt)
+        vec = [rtSensorValue(j, sensorStreams[j].getTime(sensorStreams[j].curr), vec[j]) for j in range(len(vec))]
+
+    for stream in sensorStreams:
+        print stream, stream.isOver(), stream.getTime(stream.curr), stream.times[-1]
+    
+                
+    #for event in events:
+        #print event
     #print states
     #plt.plot(range(10000), states, '*')
     #plotColorStatesNoNumber(states)
@@ -212,75 +222,24 @@ def removeStream(sensorStreams, name):
         print "Stream", name, "not found in list."
     return sensorStreams
 
-def runTest(realErrors, realEvents, recErrors, recEvents):
+def genEratics(sensorStreams):
+    errors = []
+    for stream in sensorStreams:
+        errors += stream.insertErraticVals(3, 1000)
+    errors.sort()
+    return errors
 
-    curRec = 0
-    curReal = 0
+def runTest(sensorStreams, timeInt, curiosity, bufferSize, epsilon, delta, historySize, learningRate, checkid):
 
-    falseposError = 0
-    falsenegError = 0
-    trueposError = 0
-    truenegError = 0
+    realErrors = genEratics(sensorStreams)
+    realEvents = []
+    saveToFile("simErrors" + checkid, realErrors)
 
-    falseposEvent = 0
-    falsenegEvent = 0
-    trueposEvent = 0
-    truenegEvent = 0
-    
-    for error in recErrors:
-        while error.getTime() > realErrors[currReal].getTime():
-            currReal += 1
-            falsnegError += 1
-        if error.getTime() < realErrors[currReal].getTime():
-            falseposError += 1
-        elif error.getTime() == realErrors[currReal].getTime:
-            if error.getSensor() == realErrors[currReal].getSensor():
-                trueposError += 1
-                currReal += 1
-            else:
-                it = 1
-                success = False
-                while error.getTime() == realError[currReal+it].getTime():
-                    if error.getSensor() == realErrors[currReal + it].getSensor():
-                        trueposError += 1
-                        realErrors.pop(currReal+it)
-                        success = True
-                        break
-                if not success:
-                    falseposError += 1
-       
-    truenegError = len(states)-falseposError-trueposError-falsenegError
+    r, states, recEvents, recErrors = runRAVQ(sensorStreams, timeInt, curiosity, bufferSize, epsilon, delta, historySize, learningRate, checkid)
 
-    for event in recEvents:
-        while event.getTime() > realEvents[currReal].getTime():
-            currReal += 1
-            falsnegEvent += 1
-        if event.getTime() < realEvents[currReal].getTime():
-            falseposEvent += 1
-        elif event.getTime() == realEvents[currReal].getTime:
-            trueposEvent += 1
-       
-    truenegEvent = len(states)-falseposEvent-trueposEvent-falsenegEvent
-
-    print "\nError detection statistics:"
-    print "True (?) negatives:", truenegError
-    print "True positives:", trueposError
-    print "False negatives:", falsenegError
-    print "False (?) positives:", falseposError
-    print
-    print "Accuracy:", (trueposError+truenegError)/len(states)
-    print "Sensitivity:", (trueposError)/(trueposError+falsenegError)
-    print "Specificity:", truenegError/(truenegError+falseposError)
-
-    print "\nEvent detection statistics:"
-    print "True (?) negatives:", truenegEvent
-    print "True positives:", trueposEvent
-    print "False negatives:", falsenegEvent
-    print "False (?) positives:", falseposEvent
-    print
-    print "Accuracy:", (trueposEvent+truenegEvent)/len(states)
-    print "Sensitivity:", (trueposEvent)/(trueposEvent+falsenegEvent)
-    print "Specificity:", truenegEvent/(truenegEvent+falseposEvent)
+    saveToFile("simErrors" + checkid, realErrors)
+    saveToFile("recErrors" + checkid, recErrors)
+    saveToFile("length" + checkid, len(states))
 
 def saveToFile(filename, thing):
     fp = open(filename, 'w')
@@ -336,10 +295,10 @@ def main():
         #print err
 
     print "Running RAVQ with epsilon %.1f, delta %.1f, learning rate %.1f" % (opts.epsilon, opts.delta, opts.learningRate)
+    
+    #r, states, events, errors = runRAVQ(sensorStreams, opts.timeInt, opts.curiosity, opts.bufferSize, opts.epsilon, opts.delta, opts.historySize, opts.learningRate, opts.checkid)
+    runTest(sensorStreams, opts.timeInt, opts.curiosity, opts.bufferSize, opts.epsilon, opts.delta, opts.historySize, opts.learningRate, opts.checkid)
 
-    r, states, events, errors = runRAVQ(sensorStreams, opts.timeInt, opts.curiosity, opts.bufferSize, opts.epsilon, opts.delta, opts.historySize, opts.learningRate, opts.checkid)
-
-    print states
     #checkpoint(r, states, sensorStreams, errors, events)
     
     """
@@ -355,5 +314,6 @@ def main():
     print compareVecs(vecs2, vecs1)
     """
     #r, states = runRAVQ(sensorStreams)
-    
-main()
+   
+if __name__ == "__main__": 
+    main()

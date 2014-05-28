@@ -1,11 +1,35 @@
-#RAVQ module from Pyrobot
-#Blank, D.S., Kumar, D., Meeden, L., and Yanco, H. (2006) The Pyro toolkit for AI and robotics. 
-#In AI Magzine Volume 27, Number 1
-#Modified for FoREST-Cat by Emily Dolson, 2013
+"""
+This module implements a Resource Allocating Vector Quantizer (RAVQ) and 
+described by Linaker and Niklasson, 2006
+
+This module has been adapted from the ravq.py module for pyrobot:
+Blank, D.S., Kumar, D., Meeden, L., and Yanco, H. (2006) The Pyro toolkit for AI and robotics. 
+In AI Magzine Volume 27, Number 1
+
+Modified for FoREST-Cat by Emily Dolson
+
+Copyright 2012-2013, Emily Dolson, distributed under the Affero GNU Public
+License.
+
+    This file is part of FoREST-cat.
+
+    FoREST-cat is free software: you can redistribute it and/or modify
+    it under the terms of the Affero GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FoREST-cat is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Affero GNU General Public License for more details.
+
+    You should have received a copy of the Affero GNU General Public License
+    along with FoREST-cat.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 import numpy.oldnumeric as Numeric
 import math, random, sys, pickle
-from pyrobot.tools.circularlist import CircularList
+from circularlist import CircularList
 from netGNGRegion import *
 
 class ModelList(CircularList):

@@ -3,6 +3,7 @@ from datetime import *
 from event import *
 from random import random, randrange
 from bisect import bisect_left
+from event import *
 
 def binary_search(a, x, lo=0, hi=None):   # can't use a to specify default for hi
     hi = hi if hi is not None else len(a) # hi defaults to len(a)   
@@ -131,7 +132,9 @@ class SensorStream():
 
     def insertErraticVals(self, sds, n):
         mean = sum(self.stream)/float(len(self.stream))
-        sd = sum([(i-mean**2 for i in self.stream)])/float(len)
+        sdlist = [i-mean**2 for i in self.stream]
+        sd = sum(sdlist)
+        sd /= float(len(self.stream))
         errs = []
         for i in range(n):
             val = mean
@@ -142,7 +145,7 @@ class SensorStream():
             
             loc = randrange(0, len(self.stream))
             self.stream[loc] = val
-            errs.append((loc, (val-mean)/sd))
+            errs.append(Error(self.label, self.times[loc], (val-mean)/sd, "erratic"))
         return errs
         
 

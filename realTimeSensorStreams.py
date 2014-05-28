@@ -1,7 +1,39 @@
+"""
+The realTimeSensorStreams library contains class for gracefully handling
+the messy intricasies of real time sensor data.
+
+Copyright 2012-2013, Emily Dolson, distributed under the Affero GNU Public
+License.
+
+    This file is part of FoREST-cat.
+
+    FoREST-cat is free software: you can redistribute it and/or modify
+    it under the terms of the Affero GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    FoREST-cat is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    Affero GNU General Public License for more details.
+
+    You should have received a copy of the Affero GNU General Public License
+    along with FoREST-cat.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+__author__= "Emily Dolson <EmilyLDolson@gmail.com>"
+__version__= "1.0"
+
 from datetime import datetime, timedelta
 from math import isnan
 
 def loadDictFromFile(filename):
+    """
+    Reads from the file with the specified (string) name,
+    and makes a dictionary in which each line is an entry.
+    Everything before the first comma in the line is the key,
+    and the value is a list of the remaining comma-separated items.
+    """
     d = {}
     infile = open(filename)
     for line in infile:
@@ -121,6 +153,10 @@ class rtSensorStream:
     This class handles the stream of data from a single sensor.
     """
     def __init__(self, name, source):
+        """
+        Inputs: name - variable name of this sensor in file (string)
+        source - file that this stream can be found in (string)
+        """
         self.name = name #Variable name of sensor from file
         streamInfo = findNormVals(name)
         if streamInfo == None:
@@ -128,7 +164,7 @@ class rtSensorStream:
             return
 
         minVal, maxVal, self.label = streamInfo
-        self.label = self.label #Label for graphs
+        #self.label = self.label #Label for graphs
         self.source = source #File this sensor is in
         self.range = (minVal, maxVal) #minimum and maximum
              #possible values for sensor, for normalization
@@ -144,6 +180,31 @@ class rtSensorStream:
         self.errorState = False #Is this sensor currently in an errorState?
                           #(used to avoid sending too many e-mails)
 
+    """
+    def __init__(self, stream):
+        ""
+        Inputs: name - variable name of this sensor in file (string)
+        source - file that this stream can be found in (string)
+
+        The version is basically a copy constructor.
+        ""
+        self.name = stream.name #Variable name of sensor from file
+        self.label = stream.label #Label for graphs
+        self.source = stream.source #File this sensor is in
+        self.range = stream.range #minimum and maximum
+             #possible values for sensor, for normalization
+        self.valBuffer = stream.valBuffer #stores data to be processed
+            #Should valBuffer maybe be a better data structure?
+            #It will normally be FIFO, but occasionally things
+            #will need to be rearranged by date. The overhead
+            #of a priority queue is probably still not worth it.
+
+        self.currTime = stream.currTime #The time that this sensor thinks it is
+        self.lastVal = stream.lastVal #The last value emitted by this sensor.
+        self.freq = stream.freq #How frequently does this sensor take measurements?
+        self.errorState = stream.errorState #Is this sensor currently in an errorState?
+                          #(used to avoid sending too many e-mails)
+    """
     def __str__(self):
         return self.source + " " + self.name + " " + self.label + " " + str(self.range) + ": " + str(self.valBuffer[:min(5, len(self.valBuffer))]) + ("..." if len(self.valBuffer) > 5 else "")
     
@@ -176,7 +237,7 @@ class rtSensorStream:
             self.currTime = self.lastVal.time
             return self.lastVal
         
-        if lastVal == None:
+        if self.lastVal == None:
             #There have never been any values in the buffer
             print "ERROR: Initial values required for all sensors"
 
@@ -235,21 +296,39 @@ class rtSensorStream:
             if i == 0:
                 self.currTime = time
 
+        elif self.lastVal != None and time < self.lastVal.time:
+            #This is from before the last value submitted.
+            #Don't add it.
+            return
+        
         else:
+            #we can just add the value to the back
             self.valBuffer.append(rtSensorValue(self, time, self.normalize(val)))
             if len(self.valBuffer) == 1:
                 self.currTime = time
 
 class SensorArray:
+    """
+    A class for keeping track of a number of rtSensorStream objects and
+    making sure that they are synchronied and contain the desired data.
+    """
     def __init__(self, dictFile, startTime):
+        """
+        Inputs: dictfile - name of file indicating which files to examine
+        for which variables (string)
+        startTime - datetime object indicating earliest time to accept data from
+        """
         self.currTime = startTime
         self.keepGoing = False
-        self.nameSenseDict = {}
+        self.nameSenseDict = {} #dictionary linking file names to rtSensorStream
+        #objects to be updated by that file
+
         nameVarDict = loadDictFromFile(dictFile)
         for key in nameVarDict.keys():
-            if key.find("+") != -1:
-                sKey = key.split("+")
+            if key.find("+") != -1: #sometimes data is split across files
+                sKey = key.split("+") #the "+" shortcut handles that
                 senseList = [rtSensorStream(i, sKey[0]) for i in nameVarDict[key]]
+                #store pointer to same object in both dicts
                 self.nameSenseDict[sKey[0]] = senseList
                 self.nameSenseDict[sKey[1]] = senseList
             else:
@@ -259,23 +338,35 @@ class SensorArray:
         self.keepGoing = False
     
     def getNext(self, timeDiff):
+        """
+        Generate the next vector to feed into FoREST-cat.
+        Inputs: timeDiff - how much after the last timestep is this
+        timestep supposed to be (int)?
+        Returns: a list of the appropriate values from all sensors
+        """
         self.keepGoing = False
         self.currTime += timedelta(minutes=timeDiff)
         vec = []
         keys = self.nameSenseDict.keys()
-        keys.sort()
+        keys.sort() #be absolutely positive that order is consistent
         for key in keys:
             for sensor in self.nameSenseDict[key]:
                 sensor.sync(self.currTime)
                 vec.append(sensor.next(self.currTime))
                 if abs(vec[-1].time - self.currTime) > sensor.freq*2:
-                    print vec[-1].time, self.currTime, sensor.freq,  "INTENTIONAL INTERPOLATION" 
                     vec[-1].value = float("nan") #interpolate
                 if len(sensor.valBuffer) > 0:
                     self.keepGoing = True
         return vec
 
     def initFreqs(self):
+        """
+        Iterate through sensors and caculate frequencies by comparing time
+        stamps of first and second values. Theoretically it might be good
+        to use a slgithly larger sample size. Also, this would need to be
+        changed a bit to work in a situation where the data were actually
+        arriving in completely real time.
+        """
         for key in self.nameSenseDict.keys():
             for sensor in self.nameSenseDict[key]:
                 if len(sensor.valBuffer) > 1:
@@ -328,7 +419,7 @@ class SensorArray:
                     return False
             
             #Get data
-            print indices
+            #print indices
             for line in infile:
                 sline = line.split(",")
                 sline[0] = convertDateTime(sline[0].strip("\' \""))
@@ -364,19 +455,25 @@ class rtSensorValue():
     This class allows for the storing of metadata with values.
     """
     def __init__(self, sensor, time, value):
-        self.sensor = sensor #pointer to sensor producing value
-        self.time = time #when this point was recorded
-        self.value = value #value recorded
+        """
+        Inputs: sensor - pointer to sensor that produced this value
+        time - datetime object indicating when this point was recorded
+        value - float indicating value recorded.
+        """
+        self.sensor = sensor 
+        self.time = time 
+        self.value = value 
         self.replaced = False #was this value interpolated because
                         #of an invalid number?
         self.flag = None #If this value was replaced, why?
+        self.bin = None #for information theory analysis
 
         if isnan(self.value):
             self.replaced = True #This is going to get
             self.flag = "Missing" #replaced although not yet
 
         if self.value < 0 or self.value > 1: 
-            print value, sensor.getOrigVal(value), "value out of range from", sensor
+            #print value, sensor.getOrigVal(value), "value out of range from", sensor
             self.value = float("nan")
             self.replaced = True
             self.flag = "Out of range"
