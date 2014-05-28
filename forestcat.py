@@ -191,8 +191,8 @@ def main():
     parser.add_option("-r", "--restart", action = "store_true", default=False, dest="restart", help="Restart from previous run?")
     parser.add_option("-C", "--config-file", action = "store", default="forestcat.config", dest="config", help="Configuration file")
     parser.add_option("-i", "--inject-eratics", action = "store_true", default=False, dest="injectEratics", help="Inject simulated eratic errors into data.")
+    parser.add_option("-T", "--test", action = "store_true", default=False, dest="test", help="Run FoREST-cat in test mode.")
     (opts, args) = parser.parse_args()
-    parser.add_option("--test", action = "store_true", default=False, dest="test", help="Run FoREST-cat in test mode.")
 
     print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
 
