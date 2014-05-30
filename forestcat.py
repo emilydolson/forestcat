@@ -191,7 +191,7 @@ def main():
     parser.add_option("-r", "--restart", action = "store_true", default=False, dest="restart", help="Restart from previous run?")
     parser.add_option("-C", "--config-file", action = "store", default="forestcat.config", dest="config", help="Configuration file")
     parser.add_option("-i", "--inject-eratics", action = "store_true", default=False, dest="injectEratics", help="Inject simulated eratic errors into data.")
-    parser.add_option("-T", "--test", action = "store_true", default=False, dest="test", help="Run FoREST-cat in test mode.")
+    parser.add_option("-T", "--test", action = "store_true", default=False, dest="test", help="Run FoREST-cat in test mode (don't store data in Amazon cloud).")
     (opts, args) = parser.parse_args()
 
     print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
@@ -199,7 +199,7 @@ def main():
     #Initialize data
     try:
         subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
-    except CalledProcessError as e:
+    except Exception as e:
         log("Call to rsync failed")
         sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
     else:
@@ -254,7 +254,7 @@ def main():
         #check for updates with rsync - RSA keys need to be appropriately configured for this to work
         try:
             subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
-        except CalledProcessError as e:
+        except Exception as e:
             log("Call to rsync failed")
             sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
         else:
