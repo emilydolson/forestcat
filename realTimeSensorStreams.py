@@ -337,7 +337,7 @@ class SensorArray:
         self.initFreqs()
         self.keepGoing = False
     
-    def __len__():
+    def __len__(self):
         n = 0
         for key in self.nameSenseDict.keys():
             n += len(self.nameSenseDict[key])
