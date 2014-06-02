@@ -53,7 +53,11 @@ class Region:
         self.trace = []
         self.timeStep = 0 #keeps track of number of points in this state
         self.sensitivity = 3 #number of SDs out a point needs to be flagged
-                            #as anomalous
+                            #as anomalous if gauss = True, or number of
+                            #times the average prediction error off from
+                            #the predicted value a point must be to
+                            #get flagged as anonmalous if gauss = False
+        self.gauss = False
 
         #Set up three layer, fully connected, feedforward neural net
         self.expert = Network()
@@ -89,7 +93,7 @@ class Region:
 
         potErrs = []
  
-        return vec, None
+        return vec, potErrs
             
     def inVecCuriosity(self, vec, prevVec):
         """
@@ -141,7 +145,14 @@ class Region:
         
         potErrs = []
         for i in range(len(vec)):
-            if abs(self.runningMeans[i] - vec[i].value) > currSDs[i]*self.sensitivity or vec[i].replaced:
+            #If we're assuming things have a gaussian distribution around the mean, we use sd = true
+            if (self.gauss and abs(self.runningMeans[i] - vec[i].value) > currSDs[i]*self.sensitivity) or vec[i].replaced:
+                potErrs.append(Error(vec[i].source+" "+vec[i].name, vec[i].time, vec[i].value, vec[i].replaced, (vec[i].flag if vec[i].flag==None else "Abnormal value")))
+            
+            #We can make fewer assumptions by just looking at deviation from prediction relative to prediction error
+            elif abs(prediction[i] - vec[i].value) > sqrt(predErr)/self.timeStep*self.sensitivity:
+                #predErr is sum of squared errors so this gives us an average prediction error so far.
+                #This will be an overestimate, as prediction error will go down over time.
                 potErrs.append(Error(vec[i].source+" "+vec[i].name, vec[i].time, vec[i].value, vec[i].replaced, (vec[i].flag if vec[i].flag==None else "Abnormal value")))
             else:
                 vec[i].sensor.errorState = False
