@@ -197,13 +197,14 @@ def main():
     print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
 
     #Initialize data
-    try:
-        subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
-    except Exception as e:
-        log("Call to rsync failed")
-        #sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
-    else:
-        log("call to rsync successful")
+    if not opts.test:
+        try:
+            subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
+        except Exception as e:
+            log("Call to rsync failed")
+            #sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
+        else:
+            log("call to rsync successful")
     
     log("loading sensors")
     sensors = SensorArray(opts.config, datetime(2013, 7, 25, 1, 1, 1))
@@ -254,19 +255,20 @@ def main():
 
         #get data
         #check for updates with rsync - RSA keys need to be appropriately configured for this to work
-        try:
-            subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
-        except Exception as e:
-            log("Call to rsync failed")
-            sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
-        else:
-            log("call to rsync successful")
-            sensors.getData()
+        if not opts.test:
+            try:
+                subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
+            except Exception as e:
+                log("Call to rsync failed")
+                #sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
+            else:
+                log("call to rsync successful")
+                sensors.getData()
 
         states = []
         errors = []
         events = []
-
+        print sensors.keepGoing
         while sensors.keepGoing:
             #Get data
             data = sensors.getNext(opts.timeInt)
