@@ -7,7 +7,7 @@ class Event():
         self.reason = reason
 
     def __str__(self):
-        return str(self.prevState) + ", " + str(self.newState) + ", " + str(self.vector + ", " + str(self.time) + ", " + self.reason + "\n"
+        return str(self.prevState) + ", " + str(self.newState) + ", " + str(self.vector) + ", " + str(self.time) + ", " + self.reason + "\n"
 
     def getTime(self):
         return self.time
