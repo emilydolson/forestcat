@@ -182,7 +182,8 @@ def main():
     parser.add_option("-t", "--timeInt", default = 5, action ="store", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
     parser.add_option("-R", "--refresh-rate", default = 60, action = "store", dest="refreshRate", type="int", help="How frequently (in minutes) are new data available at the pull location?")
     parser.add_option("-p", "--pull-location", default = "edolson@gromit.sr.unh.edu:/d1/proj/hbrook/sensor/field/RTD", action="store", dest="pullLocation", type="string", help="Location from which data can be pulled in real-time.")
-    parser.add_option("-b", "--bufferSize", default=100, action="store", dest="bufferSize", type= "int", help="Buffer size for RAVQ")
+    parser.add_option("-E", "--eventThreshold", default=.5, action="store", dest="bufferSize", type="float", help="Percent of sensors that must exhibit errors to qualify as suspected event.")
+    parser.add_option("-b", "--bufferSize", default=100, action="store", dest="bufferSize", type="int", help="Buffer size for RAVQ")
     parser.add_option("-e", "--epsilon", default=1, action="store", dest="epsilon", type="float", help="Epsilon for RAVQ")
     parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
     parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
@@ -274,17 +275,7 @@ def main():
             vec, errs = r.input(data, r.prevVec)[2:]
             log("Input processed: " + str(vec))
 
-            states.append(r.newWinnerIndex)
-
-            #Send alerts
-            if errs != None and errs != []:
-                for e in errs:
-                    log(str(e))
-                    if not e.sensor.errorState:
-                        errorAlert(e)
-                        e.sensor.errorState = True
-                    errors.append(e.sensor + ", " + str(e.time) + ", " + str(e.value) + ", " 
-                               + e.flag + ", " + str(e.replace) + "\n")
+            states.append((r.newWinnerIndex, sensors.currTime))
 
             #Handle events - Check for both event types
             if r.newWinnerIndex != r.previousWinnerIndex:
@@ -297,15 +288,23 @@ def main():
                 events.append(str(ev.prevState) + ", " + str(ev.newState) + ", " 
                          + str(ev.vector) + ", " + str(ev.time) + ", " + ev.reason + "\n")
 
-            elif errs == None:
+            elif len(errs) > len(sensors)*opts.eventThreshold:
                 ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, data[0].time, "anomalous number of errors")
                 if not r.eventState:
                     eventAlertAnomalous(ev)
                     r.eventState = True
                 log("Potential event: " + str(ev))
-                events.append(str(ev.prevState) + ", " + str(ev.newState) + ", " + 
-                        str(ev.vector) + ", " + str(ev.time) + ", " + ev.reason + "\n")
+                events.append(ev)
             
+            elif len(errs) > 0: #Handle errors
+                for e in errs:
+                    log(str(e))
+                    if not e.sensor.errorState:
+                        errorAlert(e)
+                        e.sensor.errorState = True
+                    errors.append(e.sensor + ", " + str(e.time) + ", " + str(e.value) + ", " 
+                               + e.flag + ", " + str(e.replace) + "\n")
+           
             else:
                 r.eventState = False
             log("Timestep complete.\n")
@@ -321,12 +320,12 @@ def main():
         else:
             stateFile = open("states", "w+")
         for state in states:
-            stateFile.write(str(state) +"\n")
+            stateFile.write(str(",".join(str(i) for i in state)) +"\n")
         stateFile.close() 
         log("States written to file")
 
         #Save errors if there are any
-        if errors != []:
+        if len(errors) > 0 :
             if os.path.exists("errors"):
                 errorFile = open("errors", "a")
             else:
@@ -337,13 +336,13 @@ def main():
             log("Errors written to file.")
 
         #Save events if there are any
-        if events != []:
+        if len(events) > 0:
             if os.path.exists("events"):
                 eventFile = open("events", "a")
             else:
                 eventFile = open("events", "w+")
             for event in events:
-                eventFile.write(event)
+                eventFile.write(str(event))
             eventFile.close()
             log("Events written to file")
 

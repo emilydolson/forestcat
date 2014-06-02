@@ -145,11 +145,8 @@ class Region:
                 potErrs.append(Error(vec[i].source+" "+vec[i].name, vec[i].time, vec[i].value, vec[i].replaced, (vec[i].flag if vec[i].flag==None else "Abnormal value")))
             else:
                 vec[i].sensor.errorState = False
-        if len(potErrs) < .5*len(vec):
-            return vec, potErrs
-        else:
-            return vec, None #"None" in place of potential errors indicates that
-                     #this has been determined most likely to be a rare event
+            
+        return vec, potErrs
 
     def trainExpert(self):
         """

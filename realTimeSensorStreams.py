@@ -337,6 +337,13 @@ class SensorArray:
         self.initFreqs()
         self.keepGoing = False
     
+    def __len__():
+        n = 0
+        for key in self.nameSenseDict.keys():
+            n += len(self.nameSenseDict[key])
+
+        return n
+
     def getNext(self, timeDiff):
         """
         Generate the next vector to feed into FoREST-cat.
