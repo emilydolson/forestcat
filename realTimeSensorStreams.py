@@ -318,6 +318,7 @@ class SensorArray:
         for which variables (string)
         startTime - datetime object indicating earliest time to accept data from
         """
+        self.n = 0 #keep track of length of array
         self.currTime = startTime
         self.keepGoing = False
         self.nameSenseDict = {} #dictionary linking file names to rtSensorStream
@@ -328,21 +329,32 @@ class SensorArray:
             if key.find("+") != -1: #sometimes data is split across files
                 sKey = key.split("+") #the "+" shortcut handles that
                 senseList = [rtSensorStream(i, sKey[0]) for i in nameVarDict[key]]
+                self.n += len(senseList)
+
                 #store pointer to same object in both dicts
                 self.nameSenseDict[sKey[0]] = senseList
                 self.nameSenseDict[sKey[1]] = senseList
             else:
                 self.nameSenseDict[key] = [rtSensorStream(i, key) for i in nameVarDict[key]]
+                self.n += len(self.nameSenseDict[key])
+
         self.getData()
         self.initFreqs()
         self.keepGoing = False
     
     def __len__(self):
-        n = 0
-        for key in self.nameSenseDict.keys():
-            n += len(self.nameSenseDict[key])
+        return self.n
 
-        return n
+    def __getitem__(self, i):
+        """
+        Note: This is not very efficient! It should be used
+        only when absolutely necessary.
+        """
+        uniqueDict = dict((val,key) for key, val in dict((v,k) \
+               for k,v in self.nameSenseDict.iteritems()).iteritems())
+        keys = uniqueDict.keys()
+        keys.sort() #we always access keys in sorted order
+        return keys[i]
 
     def getNext(self, timeDiff):
         """
