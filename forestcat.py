@@ -129,6 +129,20 @@ def eventAlertAnomalous(eve):
     msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
 
+def saveStateInfo(ravq, sensors):
+    outfile = open("state_info.csv", "w")
+
+    senseList = []
+    for i in range(len(sensors)):
+        senseList.append(sensors[i].source + "-" + sensors[i].label)
+
+    outfile.write(",".join(senseList))
+
+    for model in ravq.models:
+        outfile.write(",".join([str(i) for i in model.vector]) + "\n")
+
+    outfile.close()
+
 def saveToFile(filename, thing):
     """
     Generic pickling wrapper, stores a pickled version of "thing" in the file denoted by the filename string.
@@ -182,7 +196,7 @@ def main():
     parser.add_option("-t", "--timeInt", default = 5, action ="store", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
     parser.add_option("-R", "--refresh-rate", default = 60, action = "store", dest="refreshRate", type="int", help="How frequently (in minutes) are new data available at the pull location?")
     parser.add_option("-p", "--pull-location", default = "edolson@gromit.sr.unh.edu:/d1/proj/hbrook/sensor/field/RTD", action="store", dest="pullLocation", type="string", help="Location from which data can be pulled in real-time.")
-    parser.add_option("-E", "--eventThreshold", default=.5, action="store", dest="bufferSize", type="float", help="Percent of sensors that must exhibit errors to qualify as suspected event.")
+    parser.add_option("-E", "--eventThreshold", default=.5, action="store", dest="eventThreshold", type="float", help="Percent of sensors that must exhibit errors to qualify as suspected event.")
     parser.add_option("-b", "--bufferSize", default=100, action="store", dest="bufferSize", type="int", help="Buffer size for RAVQ")
     parser.add_option("-e", "--epsilon", default=1, action="store", dest="epsilon", type="float", help="Epsilon for RAVQ")
     parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
@@ -352,6 +366,7 @@ def main():
 
         #save RAVQ
         saveToFile("ravq", r)
+        saveStateInfo(r, sensors)
         log("RAVQ stored. Handling events and errors.")
 
         #If it's a new day, archive files in S3
