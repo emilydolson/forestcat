@@ -1,5 +1,5 @@
 """
-This module implements a Resource Allocating Vector Quantizer (RAVQ) and 
+This module implements a Resource Allocating Vector Quantizer (RAVQ) as 
 described by Linaker and Niklasson, 2006
 
 This module has been adapted from the ravq.py module for pyrobot:
