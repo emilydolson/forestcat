@@ -178,20 +178,61 @@ def loadFromFile(filename):
                   "FoREST-cat unpickle fail", "seaotternerd@gmail.com")
         return None
 
-def exit_handler(signum, trace):
+def makeDate(option, opt, value, parser):
     """
-    Handle exit smoothly
+    Function to create a date object as a callback
+    from option parser. Value is a string of numbers separated
+    by commas.
     """
-    print "Thank you for using FoREST-Cat. Now exiting."
-    log("Recieved exit command. Exiting...\n\n")
-    exit(0)
+    args = value.split(",")
+    return datetime(args)
 
-def main():
+def saveProgress(states, errors, events, sensors, r):
+    """
+    Helper function to save all progress thus far to appropriate files.
+    """
+    #Save state categorization
+    if os.path.exists("states"):
+        stateFile = open("states", "a")
+    else:
+        stateFile = open("states", "w+")
+    for state in states:
+        stateFile.write(str(",".join(str(i) for i in state)) +"\n")
+    stateFile.close() 
+    log("States written to file")
 
-    #Install exit handler - program will exit when it receives SIGINT
-    signal.signal(signal.SIGINT, exit_handler)
+    #Save errors if there are any
+    if len(errors) > 0 :
+        if os.path.exists("errors"):
+            errorFile = open("errors", "a")
+        else:
+            errorFile = open("errors", "w+")
+        for error in errors:
+            errorFile.write(error)
+        errorFile.close()
+        log("Errors written to file.")
 
-    # Get command line aruments
+    #Save events if there are any
+    if len(events) > 0:
+        if os.path.exists("events"):
+            eventFile = open("events", "a")
+        else:
+            eventFile = open("events", "w+")
+        for event in events:
+            eventFile.write(str(event))
+        eventFile.close()
+        log("Events written to file")
+
+    #save RAVQ
+    saveToFile("ravq", r)
+    saveToFile("time", sensors.currTime)
+    saveStateInfo(r, sensors)
+    log("RAVQ stored.")
+
+def getInput():
+    """
+    Run command line argument parser and return results
+    """
     parser = OptionParser()
     parser.add_option("-t", "--timeInt", default = 5, action ="store", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
     parser.add_option("-R", "--refresh-rate", default = 60, action = "store", dest="refreshRate", type="int", help="How frequently (in minutes) are new data available at the pull location?")
@@ -207,7 +248,34 @@ def main():
     parser.add_option("-C", "--config-file", action = "store", default="forestcat.config", dest="config", help="Configuration file")
     parser.add_option("-i", "--inject-eratics", action = "store_true", default=False, dest="injectEratics", help="Inject simulated eratic errors into data.")
     parser.add_option("-T", "--test", action = "store_true", default=False, dest="test", help="Run FoREST-cat in test mode (don't store data in Amazon cloud).")
+    parser.add_option("-D", "--startDate", action = "callback", callback=makeDate, type="string", default=datetime(2013, 7, 25, 1, 1, 1), dest="startDate", help="The earliest time point to use in this run.")
     (opts, args) = parser.parse_args()
+    return opts
+
+def main():
+
+    def exit_handler(signum, trace):
+        """
+        Handle exit smoothly and save progress
+        """
+        print "Thank you for using FoREST-Cat. Saving progress."
+        log("Recieved exit command. Saving progress\n")
+        if "states" not in globals():
+            states = []
+            errors = []
+            events = []
+        if "sensors" in globals():
+            saveProgress(states, errors, events, sensors, r)
+            log("Progress saved.\n")
+        print "Exiting..."
+        log("Exiting...\n\n")
+        exit(0)
+
+    #Install exit handler - program will exit when it receives SIGINT
+    signal.signal(signal.SIGINT, exit_handler)
+
+    # Get command line aruments
+    opts = getInput()
 
     print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
 
@@ -217,23 +285,25 @@ def main():
             subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
         except Exception as e:
             log("Call to rsync failed")
-            #sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
+            sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
         else:
             log("call to rsync successful")
+
+    if not opts.restart: #if we aren't loading a pre-existing RAVQ, we need to 
+        #do this before generating the new one, so we know how many sensors there are
+        log("loading sensors")
+        sensors = SensorArray(opts.config, opts.startDate)
+        initData = sensors.getNext(opts.timeInt) #this doesn't get input
+        #if we want to be really efficient, fix this one day
+        log("sensors loaded")
+        saveToFile("sensors", sensors)
     
-    log("loading sensors")
-    sensors = SensorArray(opts.config, datetime(2013, 7, 25, 1, 1, 1))
-    initData = sensors.getNext(opts.timeInt) #this doesn't get input
-                #if we want to be really efficient, fix this one day
-    log("sensors loaded")
-
-    saveToFile("sensors", sensors)
-
     #Initialize ravq
     if opts.restart:
         print "Loading stored ravq from file..."
         r = loadFromFile("ravq") #default file for storing ravq
-        if r == None:
+        opts.startDate = loadFromFile("time")
+        if r == None or opts.startDate == None:
             log("Failed to load RAVQ. Closing...")
             sendEmail("Failed to load RAVQ, FoREST-cat is closing.", 
                   "FoREST-cat load fail", "seaotternerd@gmail.com")
@@ -243,6 +313,15 @@ def main():
         log("Generating new RAVQ...")
         r = ARAVQ(opts.bufferSize, opts.epsilon, opts.delta, len(initData), opts.historySize, opts.learningRate)
         log("RAVQ generated.")
+
+    if opts.restart: #if we are loading a pre-existing RAVQ, we need to 
+        #do this after loading it, so we know when the start date is
+        log("loading sensors")
+        sensors = SensorArray(opts.config, opts.startDate)
+        initData = sensors.getNext(opts.timeInt) #this doesn't get input
+        #if we want to be really efficient, fix this one day
+        log("sensors loaded")
+        saveToFile("sensors", sensors)
 
     #Set up Amazon Web Services stuff
     if not opts.test:
@@ -283,7 +362,7 @@ def main():
         states = []
         errors = []
         events = []
-        print sensors.keepGoing
+        
         while sensors.keepGoing:
             #Get data
             data = sensors.getNext(opts.timeInt)
@@ -331,49 +410,13 @@ def main():
         log("Buffer emptied.\n\n")
 
         #Save stuff
-
-        #Save state categorization
-        if os.path.exists("states"):
-            stateFile = open("states", "a")
-        else:
-            stateFile = open("states", "w+")
-        for state in states:
-            stateFile.write(str(",".join(str(i) for i in state)) +"\n")
-        stateFile.close() 
-        log("States written to file")
-
-        #Save errors if there are any
-        if len(errors) > 0 :
-            if os.path.exists("errors"):
-                errorFile = open("errors", "a")
-            else:
-                errorFile = open("errors", "w+")
-            for error in errors:
-                errorFile.write(error)
-            errorFile.close()
-            log("Errors written to file.")
-
-        #Save events if there are any
-        if len(events) > 0:
-            if os.path.exists("events"):
-                eventFile = open("events", "a")
-            else:
-                eventFile = open("events", "w+")
-            for event in events:
-                eventFile.write(str(event))
-            eventFile.close()
-            log("Events written to file")
-
-        #save RAVQ
-        saveToFile("ravq", r)
-        saveStateInfo(r, sensors)
-        log("RAVQ stored. Handling events and errors.")
+        saveProgress(states, errors, events, sensors, r)
 
         #If it's a new day, archive files in S3
         if today[0] != datetime.date(datetime.now()) and not opts.test:
             for item in ["log", "ravq", "events", "errors", "states"]:
                 #store in s3
-                try: #exception handling in boto documentation is kind of vaugue
+                try: #exception handling in boto documentation is kind of vague
                     key = boto.s3.key.Key(bucket)
                     key.key = item+str(today)
                     key.set_contents_from_filename(item)
