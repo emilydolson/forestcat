@@ -264,7 +264,7 @@ def main():
             states = []
             errors = []
             events = []
-        if "sensors" in globals():
+        if "sensors" in dir() and "r" in dir():
             saveProgress(states, errors, events, sensors, r)
             log("Progress saved.\n")
         print "Exiting..."

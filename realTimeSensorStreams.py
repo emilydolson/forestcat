@@ -350,11 +350,14 @@ class SensorArray:
         Note: This is not very efficient! It should be used
         only when absolutely necessary.
         """
-        uniqueDict = dict((val,key) for key, val in dict((v,k) \
+        uniqueDict = dict((val,key) for key, val in dict((frozenset(v),k) \
                for k,v in self.nameSenseDict.iteritems()).iteritems())
         keys = uniqueDict.keys()
         keys.sort() #we always access keys in sorted order
-        return keys[i]
+        sensorList = []
+        for key in keys:
+            sensorList += self.nameSenseDict[key]
+        return sensorList[i]
 
     def getNext(self, timeDiff):
         """
