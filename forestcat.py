@@ -134,7 +134,7 @@ def saveStateInfo(ravq, sensors):
 
     senseList = []
     for i in range(len(sensors)):
-        senseList.append(sensors[i].source + "-" + sensors[i].label)
+        senseList.append(sensors[i].source + "-" + sensors[i].name)
 
     outfile.write(",".join(senseList))
 
