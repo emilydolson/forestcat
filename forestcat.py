@@ -36,7 +36,7 @@ from math import sqrt, isnan
 from optparse import OptionParser
 from email.mime.text import MIMEText
 from datetime import datetime
-import os, sys, pickle, smtplib, signal, subprocess
+import os, sys, pickle, smtplib, signal, subprocess, shutil
 import matplotlib.pyplot as plt
 
 def log(text):
@@ -129,8 +129,8 @@ def eventAlertAnomalous(eve):
     msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
 
-def saveStateInfo(ravq, sensors):
-    outfile = open("state_info.csv", "w")
+def saveStateInfo(ravq, sensors, ident):
+    outfile = open("state_info"+ident+".csv", "w")
 
     senseList = []
     for i in range(len(sensors)):
@@ -187,15 +187,16 @@ def makeDate(option, opt, value, parser):
     args = value.split(",")
     return datetime(args)
 
-def saveProgress(states, errors, events, sensors, r):
+def saveProgress(states, errors, events, sensors, r, ident):
     """
     Helper function to save all progress thus far to appropriate files.
     """
+    statename = "states" + ident
     #Save state categorization
-    if os.path.exists("states"):
-        stateFile = open("states", "a")
+    if os.path.exists(statename):
+        stateFile = open(statename, "a")
     else:
-        stateFile = open("states", "w+")
+        stateFile = open(statename, "w+")
     for state in states:
         stateFile.write(str(",".join(str(i) for i in state)) +"\n")
     stateFile.close() 
@@ -203,10 +204,11 @@ def saveProgress(states, errors, events, sensors, r):
 
     #Save errors if there are any
     if len(errors) > 0 :
-        if os.path.exists("errors"):
-            errorFile = open("errors", "a")
+        errorname = "errors" + ident
+        if os.path.exists(errorname):
+            errorFile = open(errorname, "a")
         else:
-            errorFile = open("errors", "w+")
+            errorFile = open(errorname, "w+")
         for error in errors:
             errorFile.write(error)
         errorFile.close()
@@ -214,20 +216,38 @@ def saveProgress(states, errors, events, sensors, r):
 
     #Save events if there are any
     if len(events) > 0:
-        if os.path.exists("events"):
-            eventFile = open("events", "a")
+        eventname = "events" + ident
+        if os.path.exists(eventname):
+            eventFile = open(eventname, "a")
         else:
-            eventFile = open("events", "w+")
+            eventFile = open(eventname, "w+")
         for event in events:
             eventFile.write(str(event))
         eventFile.close()
         log("Events written to file")
 
     #save RAVQ
-    saveToFile("ravq", r)
-    saveToFile("time", sensors.currTime)
-    saveStateInfo(r, sensors)
+    saveToFile("ravq"+ident, r)
+    saveToFile("time"+ident, sensors.currTime)
+    saveStateInfo(r, sensors, ident)
     log("RAVQ stored.")
+
+def saveOldFiles(ident):
+    """
+    Checks to see if old files exist, and moves them if they do.
+    This prevents data from multiple runs from being concatenated together.
+    """
+    if os.path.exists("log"+ident):
+        shutil.move("log"+ident, "stored_log"+ident)
+
+    if os.path.exists("states"+ident):
+        shutil.move("states"+ident, "stored_states"+ident)
+
+    if os.path.exists("events"+ident):
+        shutil.move("events"+ident, "stored_events"+ident)
+
+    if os.path.exists("errors"+ident):
+        shutil.move("errors"+ident, "stored_errors"+ident)
 
 def getInput():
     """
@@ -242,8 +262,8 @@ def getInput():
     parser.add_option("-e", "--epsilon", default=1, action="store", dest="epsilon", type="float", help="Epsilon for RAVQ")
     parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
     parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
-    parser.add_option("-l", "--learningRate", action="store", default=.2, nargs=1, dest="learningRate", type= "float", help="Learning rate for the ARAVQ")
-    parser.add_option("-c", "--checkid", action = "store", default="", dest="checkid", help="ID of checkpoint to save files under.")
+    parser.add_option("-l", "--learningRate", action="store", default=.2, nargs=1, dest="learningRate", type="float", help="Learning rate for the ARAVQ")
+    parser.add_option("-I", "--id", action = "store", type="string", default="", dest="ident", help="Unique ID to append to files being saved.")
     parser.add_option("-r", "--restart", action = "store_true", default=False, dest="restart", help="Restart from previous run?")
     parser.add_option("-C", "--config-file", action = "store", default="forestcat.config", dest="config", help="Configuration file")
     parser.add_option("-i", "--inject-eratics", action = "store_true", default=False, dest="injectEratics", help="Inject simulated eratic errors into data.")
@@ -253,6 +273,9 @@ def getInput():
     return opts
 
 def main():
+
+    #Set-up files that need to be appended to
+    saveOldFiles(opts.ident)
 
     def exit_handler(signum, trace):
         """
@@ -265,7 +288,7 @@ def main():
             errors = []
             events = []
         if "sensors" in dir() and "r" in dir():
-            saveProgress(states, errors, events, sensors, r)
+            saveProgress(states, errors, events, sensors, r, opts.ident)
             log("Progress saved.\n")
         print "Exiting..."
         log("Exiting...\n\n")
@@ -289,32 +312,19 @@ def main():
         else:
             log("call to rsync successful")
 
-    if not opts.restart: #if we aren't loading a pre-existing RAVQ, we need to 
-        #do this before generating the new one, so we know how many sensors there are
-        log("loading sensors")
-        sensors = SensorArray(opts.config, opts.startDate)
-        initData = sensors.getNext(opts.timeInt) #this doesn't get input
-        #if we want to be really efficient, fix this one day
-        log("sensors loaded")
-        saveToFile("sensors", sensors)
-    
     #Initialize ravq
     if opts.restart:
         print "Loading stored ravq from file..."
-        r = loadFromFile("ravq") #default file for storing ravq
-        opts.startDate = loadFromFile("time")
+        r = loadFromFile("ravq"+opts.ident) #default file for storing ravq
+        opts.startDate = loadFromFile("time"+opts.ident)
         if r == None or opts.startDate == None:
             log("Failed to load RAVQ. Closing...")
             sendEmail("Failed to load RAVQ, FoREST-cat is closing.", 
                   "FoREST-cat load fail", "seaotternerd@gmail.com")
             exit()
         log("Loaded RAVQ")
-    else:
-        log("Generating new RAVQ...")
-        r = ARAVQ(opts.bufferSize, opts.epsilon, opts.delta, len(initData), opts.historySize, opts.learningRate)
-        log("RAVQ generated.")
-
-    if opts.restart: #if we are loading a pre-existing RAVQ, we need to 
+        
+        #if we are loading a pre-existing RAVQ, we need to 
         #do this after loading it, so we know when the start date is
         log("loading sensors")
         sensors = SensorArray(opts.config, opts.startDate)
@@ -322,6 +332,20 @@ def main():
         #if we want to be really efficient, fix this one day
         log("sensors loaded")
         saveToFile("sensors", sensors)
+    else:
+        #if we aren't loading a pre-existing RAVQ, we need to 
+        #do this before generating the new one, so we know 
+        #how many sensors there are
+        log("loading sensors")
+        sensors = SensorArray(opts.config, opts.startDate)
+        initData = sensors.getNext(opts.timeInt) #this doesn't get input
+        #if we want to be really efficient, fix this one day
+        log("sensors loaded")
+        saveToFile("sensors", sensors)
+    
+        log("Generating new RAVQ...")
+        r = ARAVQ(opts.bufferSize, opts.epsilon, opts.delta, len(initData), opts.historySize, opts.learningRate)
+        log("RAVQ generated.")
 
     #Set up Amazon Web Services stuff
     if not opts.test:
@@ -406,11 +430,16 @@ def main():
                 r.eventState = False
             log("Timestep complete.\n")
 
-        signal.alarm(60*opts.refreshRate) #set next alarm
+        if not opts.test:
+            #If this is a test, we don't expect more data to appear
+            signal.alarm(60*opts.refreshRate) #set next alarm
         log("Buffer emptied.\n\n")
 
         #Save stuff
         saveProgress(states, errors, events, sensors, r)
+
+        if opts.test: #tests don't need to run indefinitely
+            exit(0)
 
         #If it's a new day, archive files in S3
         if today[0] != datetime.date(datetime.now()) and not opts.test:
@@ -432,7 +461,7 @@ def main():
             print today, datetime.date(datetime.now())
     
     signal.signal(signal.SIGALRM, alarm_handler)
-    signal.alarm(1) #go off once at start-up
+    signal.alarm(.01) #go off once at start-up
     while True:
         signal.pause() #process sleeps until alarm goes off
 
