@@ -273,6 +273,8 @@ def getInput():
     return opts
 
 def main():
+    # Get command line aruments
+    opts = getInput()
 
     #Set-up files that need to be appended to
     saveOldFiles(opts.ident)
@@ -296,9 +298,6 @@ def main():
 
     #Install exit handler - program will exit when it receives SIGINT
     signal.signal(signal.SIGINT, exit_handler)
-
-    # Get command line aruments
-    opts = getInput()
 
     print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
 
