@@ -204,6 +204,19 @@ def loadFromFile(filename):
                   "FoREST-cat unpickle fail", "seaotternerd@gmail.com")
         return None
 
+def call_rsync(opts):
+    try:
+        subprocess.check_call(["rsync", "-e", "ssh", "-avz", 
+                                   opts.pullLocation, "."])
+    except Exception as e:
+        log("Call to rsync failed")
+        sendEmail("Call to rsync failed with exception " + str(e), 
+                      "rsync fail", "seaotternerd@gmail.com")
+        return False
+    else:
+        log("call to rsync successful")
+        return True
+
 def makeDate(option, opt, value, parser):
     """
     Function to create a date object as a callback
@@ -364,15 +377,7 @@ def main():
 
     #Initialize data
     if not opts.test:
-        try:
-            subprocess.check_call(["rsync", "-e", "ssh", "-avz", 
-                                   opts.pullLocation, "."])
-        except Exception as e:
-            log("Call to rsync failed")
-            sendEmail("Call to rsync failed with exception " + str(e), 
-                      "rsync fail", "seaotternerd@gmail.com")
-        else:
-            log("call to rsync successful")
+        callRsync(opts)
 
     #Initialize ravq
     if opts.restart:
@@ -440,15 +445,7 @@ def main():
         #check for updates with rsync - RSA keys need to be 
         #appropriately configured for this to work
         if not opts.test:
-            try:
-                subprocess.check_call(["rsync", "-e", "ssh", "-avz", 
-                                       opts.pullLocation, "."])
-            except Exception as e:
-                log("Call to rsync failed")
-                sendEmail("Call to rsync failed with exception " + str(e), 
-                          "rsync fail", "seaotternerd@gmail.com")
-            else:
-                log("call to rsync successful")
+            if callRsync(opts):
                 sensors.getData()
 
         states = []
@@ -475,7 +472,6 @@ def main():
                 if not r.eventState:
                     eventAlertTransition(ev)
                     r.eventState = True
-                
                 log("Potential event: " + str(ev))
                 events.append(str(ev.prevState) + ", " + str(ev.newState) 
                            + ", " + str(ev.vector) + ", " + str(ev.time) 
@@ -506,7 +502,7 @@ def main():
             if opts.verbose:
                 log("Timestep complete.\n")
 
-            if sensors.currTime.hour == 0:
+            if sensors.currTime.hour == 0 and sensors.currTime.minute == 0:
                 log("Day is now " + str(sensors.currTime))
         if not opts.test:
             #If this is a test, we don't expect more data to appear
