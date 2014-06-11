@@ -52,7 +52,9 @@ def log(text):
         logfile.write(str(datetime.now()) + ": " + str(text)+"\n")
         logfile.close()
     except Exception as e:
-        sendEmail("Received execption " + str(e) + "while trying to make log entry: " + str(datetime.now()) + ": " + text, "FoREST-cat log file", "seaotternerd@gmail.com")
+        sendEmail("Received execption " + str(e) + 
+              "while trying to make log entry: " + str(datetime.now()) 
+              + ": " + text, "FoREST-cat log file", "seaotternerd@gmail.com")
 
 def sendEmail(sendStr, subject, recepient="seaotternerd@gmail.com"):
     """
@@ -87,15 +89,21 @@ def errorAlert(err):
     Input: err - an error object to be reported on
     Returns boolean indicating success
     """
-    msg = "A potential error (" + err.flag + ") has been detected in " + err.getSensor() + " at " + str(err.getTime()) + ".\n\n"
+    msg = "A potential error (" + err.flag + ") has been detected in " \
+           + err.getSensor() + " at " + str(err.getTime()) + ".\n\n"
     msg += "The potentially erroneous value was " + str(err.value) + "."
+    
     if err.replaced != None:
-        msg += "In order to continue with the functioning of the algorithm, this value was replaced with" + str(err.replaced) + "."
-    msg += "The FoREST-cat algorithm has flagged this value as likely to be an error. This is just a prediction -"
+        msg += "In order to continue with the functioning of the algorithm,"+\
+                 " this value was replaced with" + str(err.replaced) + "."
+    msg += "The FoREST-cat algorithm has flagged this value as likely " +\
+              "to be an error. This is just a prediction -"
     msg += " this value may, instead, be the result of a rare event.\n\n"
     msg += "Please help improve FoREST-cat by answering a 2-question survey: "
-    msg += "https://docs.google.com/forms/d/1bgDqDnBTGfrt_qgotQcOmdFZ8EHqVY7UiKi1SWZB1-c/viewform?entry.1751902321=Cannot+be+determined&entry.1322398871=Maybe&entry.1034004670=Unknown&entry.234465177\n\n"
-    msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
+    msg += "https://docs.google.com/forms/d/1bgDqDnBTGfrt_qgotQcOmdFZ8EHqV" +\
+           "Y7UiKi1SWZB1-c/viewform?entry.1751902321=Cannot+be+determined&" +\
+           "entry.1322398871=Maybe&entry.1034004670=Unknown&entry.234465177\n\n"
+    msg += "Something wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential sensor error", "EmilyLDolson@gmail.com")
 
 def eventAlertTransition(eve):
@@ -104,14 +112,23 @@ def eventAlertTransition(eve):
     Input: eve - an event object to be reported on.
     Returns boolean indicating success
     """
-    msg = "A potential rare event has been detected at " + str(eve.getTime()) + ".\n\n"
-    msg += "The FoREST-cat algorithm has flagged this value as likely to be a rare event, rather than an error. This is just a prediction -"
-    msg += " this value may, instead, be the result of an erorr. It's also possible that this event isn't particularly rare or interesting, in which case you may or may not think it's actually worth being alerted to.\n\n"
-    msg += "This potential event was flagged because of a change in category. This may be a shift into a rare category, or simply a shift"
-    msg += " between two similar categories. Thus, it has a fairly high potential to not be interesting.\n\n"
+    msg = "A potential rare event has been detected at " + \
+            str(eve.getTime()) + ".\n\nThe FoREST-cat algorithm has flagged"+ \
+            "this value as likely to be a rare event, rather than an error." +\
+            "This is just a prediction - this value may, instead, be the" +\
+            " result of an erorr. It's also possible that this event isn't "+\
+            "particularly rare or interesting, in which case you may or may" +\
+            " not think it's actually worth being alerted to.\n\n"
+    msg += "This potential event was flagged because of a change in category."+\
+          "This may be a shift into a rare category, or simply a shift "+\
+          "between two similar categories. Thus, it has a fairly high " +\
+          "potential to not be interesting.\n\n"
     msg += "Please help improve FoREST-cat by answering a 2-question survey: "
-    msg += "https://docs.google.com/forms/d/11gw-_Mo2Hn0C7dolZbVQKf46M5DAdSLqfOC6IxQdeyw/viewform?entry.1751902321=Cannot+be+determined&entry.2112662628=Transition&entry.1322398871=Maybe&entry.1034004670&entry.234465177\n\n"
-    msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
+    msg += "https://docs.google.com/forms/d/11gw-_Mo2Hn0C7dolZbVQKf46M5DAdSL" +\
+           "qfOC6IxQdeyw/viewform?entry.1751902321=Cannot+be+determined&entr" +\
+           "y.2112662628=Transition&entry.1322398871=Maybe&entry.1034004670&" +\
+           "entry.234465177\n\n"
+    msg += "Something wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
 
 def eventAlertAnomalous(eve):
@@ -120,13 +137,19 @@ def eventAlertAnomalous(eve):
     Input: eve - an event object to be reported on.
     Returns boolean indicating success
     """
-    msg = "A potential rare event has been detected in at " + str(eve.getTime()) + ".\n\n"
-    msg += "The FoREST-cat algorithm has flagged this value as likely to be a rare event, rather than an error. This is just a prediction. \n\n"
-    msg += "This potential event was flagged because of a high number of anomalous values occuring at the same time. It is possible that all of these"
-    msg += " sensors are reporting erroneous values.\n"
+    msg = "A potential rare event has been detected in at " + \
+             str(eve.getTime()) + ".\n\n"
+    msg += "The FoREST-cat algorithm has flagged this value as likely to be " +\
+            "a rare event, rather than an error. This is just a prediction.\n\n"
+    msg += "This potential event was flagged because of a high number of " +\
+           "anomalous values occuring at the same time. It is possible that " +\
+           "all of these sensors are reporting erroneous values.\n"
     msg += "Please help improve FoREST-cat by answering a 2-question survey: "
-    msg += "https://docs.google.com/forms/d/11gw-_Mo2Hn0C7dolZbVQKf46M5DAdSLqfOC6IxQdeyw/viewform?entry.1751902321=Cannot+be+determined&entry.2112662628=Anomalous+values&entry.1322398871=Maybe&entry.1034004670&entry.234465177\n\n"
-    msg += "Something going wrong? E-mail the developer at EmilyLDolson@gmail.com."
+    msg += "https://docs.google.com/forms/d/11gw-_Mo2Hn0C7dolZbVQKf46M5DAdSLq"+\
+           "fOC6IxQdeyw/viewform?entry.1751902321=Cannot+be+determined&entry" +\
+           ".2112662628=Anomalous+values&entry.1322398871=Maybe&entry.103400" +\
+           "4670&entry.234465177\n\n"
+    msg += "Something wrong? E-mail the developer at EmilyLDolson@gmail.com."
     return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
 
 def saveStateInfo(ravq, sensors, ident):
@@ -145,8 +168,8 @@ def saveStateInfo(ravq, sensors, ident):
 
 def saveToFile(filename, thing):
     """
-    Generic pickling wrapper, stores a pickled version of "thing" in the file denoted by the filename string.
-    Returns boolean indicating success
+    Generic pickling wrapper, stores a pickled version of "thing" in the 
+    file denoted by the filename string. Returns boolean indicating success.
     """ 
     try: #we don't want this crashing on non-critical exceptions
         fp = open(filename, 'w')
@@ -157,13 +180,15 @@ def saveToFile(filename, thing):
 
     except Exception as e:
         log("Attempt to pickle a thing failed with exception " + str(e))
-        sendEmail("Received execption " + str(e) + "while trying to pickle a thing at " + str(datetime.now()), 
+        sendEmail("Received execption " + str(e) + 
+                 "while trying to pickle a thing at " + str(datetime.now()), 
                   "FoREST-cat pickle fail", "seaotternerd@gmail.com")
         return False
 
 def loadFromFile(filename):
     """
-    Generic unpickling wrapper, loads whatever pickled object is stored in the file denoted by the filename string.
+    Generic unpickling wrapper, loads whatever pickled object is stored 
+    in the file denoted by the filename string.
     """
     try: #we don't want this crashing on non-critical exceptions
         fp = open(filename, 'r')
@@ -174,7 +199,8 @@ def loadFromFile(filename):
     
     except Exception as e:
         log("Attempt to unpickle a thing failed with exception " + str(e))
-        sendEmail("Received execption " + str(e) + "while trying to unpickle a thing at " + str(now()), 
+        sendEmail("Received execption " + str(e) + 
+                  "while trying to unpickle a thing at " + str(now()), 
                   "FoREST-cat unpickle fail", "seaotternerd@gmail.com")
         return None
 
@@ -184,8 +210,8 @@ def makeDate(option, opt, value, parser):
     from option parser. Value is a string of numbers separated
     by commas.
     """
-    args = value.split(",")
-    return datetime(args)
+    args = [int(i) for i in value.split(",")]
+    return datetime(*args)
 
 def saveProgress(states, errors, events, sensors, r, ident):
     """
@@ -243,6 +269,9 @@ def saveOldFiles(ident):
     if os.path.exists("states"+ident):
         shutil.move("states"+ident, "stored_states"+ident)
 
+    if os.path.exists("state_info"+ident+".csv"):
+        shutil.move("state_info"+ident+".csv", "stored_stateinfo"+ident+".csv")
+
     if os.path.exists("events"+ident):
         shutil.move("events"+ident, "stored_events"+ident)
 
@@ -254,21 +283,52 @@ def getInput():
     Run command line argument parser and return results
     """
     parser = OptionParser()
-    parser.add_option("-t", "--timeInt", default = 5, action ="store", dest="timeInt", type= "float", help="The frequency with which to evaluate the current vector of the most recent data.")
-    parser.add_option("-R", "--refresh-rate", default = 60, action = "store", dest="refreshRate", type="int", help="How frequently (in minutes) are new data available at the pull location?")
-    parser.add_option("-p", "--pull-location", default = "edolson@gromit.sr.unh.edu:/d1/proj/hbrook/sensor/field/RTD", action="store", dest="pullLocation", type="string", help="Location from which data can be pulled in real-time.")
-    parser.add_option("-E", "--eventThreshold", default=.5, action="store", dest="eventThreshold", type="float", help="Percent of sensors that must exhibit errors to qualify as suspected event.")
-    parser.add_option("-b", "--bufferSize", default=100, action="store", dest="bufferSize", type="int", help="Buffer size for RAVQ")
-    parser.add_option("-e", "--epsilon", default=1, action="store", dest="epsilon", type="float", help="Epsilon for RAVQ")
-    parser.add_option("-d", "--delta", default=.9, action = "store", dest="delta", type= "float", help="Delta for RAVQ")
-    parser.add_option("-s", "--historySize", default=2, dest="historySize", type= "int", help="History size for the RAVQ.")
-    parser.add_option("-l", "--learningRate", action="store", default=.2, nargs=1, dest="learningRate", type="float", help="Learning rate for the ARAVQ")
-    parser.add_option("-I", "--id", action = "store", type="string", default="", dest="ident", help="Unique ID to append to files being saved.")
-    parser.add_option("-r", "--restart", action = "store_true", default=False, dest="restart", help="Restart from previous run?")
-    parser.add_option("-C", "--config-file", action = "store", default="forestcat.config", dest="config", help="Configuration file")
-    parser.add_option("-i", "--inject-eratics", action = "store_true", default=False, dest="injectEratics", help="Inject simulated eratic errors into data.")
-    parser.add_option("-T", "--test", action = "store_true", default=False, dest="test", help="Run FoREST-cat in test mode (don't store data in Amazon cloud).")
-    parser.add_option("-D", "--startDate", action = "callback", callback=makeDate, type="string", default=datetime(2013, 7, 25, 1, 1, 1), dest="startDate", help="The earliest time point to use in this run.")
+    parser.add_option("-t", "--timeInt", default = 5, action ="store", 
+                 dest="timeInt", type= "float", 
+                 help="The frequency with which to evaluate the current" +
+                 " vector of the most recent data.")
+    parser.add_option("-R", "--refresh-rate", default = 60, action = "store", 
+                dest="refreshRate", type="int", help="How frequently " + 
+                "(in minutes) are new data available at the pull location?")
+    parser.add_option("-p", "--pull-location", 
+         default = "edolson@gromit.sr.unh.edu:/d1/proj/hbrook/sensor/field/RTD",
+         action="store", dest="pullLocation", type="string", 
+         help="Location from which data can be pulled in real-time.")
+    parser.add_option("-E", "--eventThreshold", default=.5, action="store", 
+                dest="eventThreshold", type="float", 
+                help="Percent of sensors that must exhibit errors to qualify" +
+                      " as suspected event.")
+    parser.add_option("-b", "--bufferSize", default=100, action="store", 
+                 dest="bufferSize", type="int", help="Buffer size for RAVQ")
+    parser.add_option("-e", "--epsilon", default=1, action="store", 
+                 dest="epsilon", type="float", help="Epsilon for RAVQ")
+    parser.add_option("-d", "--delta", default=.9, action = "store", 
+                 dest="delta", type= "float", help="Delta for RAVQ")
+    parser.add_option("-s", "--historySize", default=2, dest="historySize", 
+                 type= "int", help="History size for the RAVQ.")
+    parser.add_option("-l", "--learningRate", action="store", default=.2, 
+                 nargs=1, dest="learningRate", type="float", 
+                 help="Learning rate for the ARAVQ")
+    parser.add_option("-I", "--id", action = "store", type="string", 
+                 default="", dest="ident", 
+                 help="Unique ID to append to files being saved.")
+    parser.add_option("-r", "--restart", action = "store_true", default=False, 
+                 dest="restart", help="Restart from previous run?")
+    parser.add_option("-C", "--config-file", action = "store", 
+           default="forestcat.config", dest="config", help="Configuration file")
+    parser.add_option("-i", "--inject-eratics", action = "store_true", 
+           default=False, dest="injectEratics", 
+           help="Inject simulated eratic errors into data.")
+    parser.add_option("-T", "--test", action = "store_true", default=False, 
+         dest="test", 
+         help="Run FoREST-cat in test mode (don't store data in Amazon cloud).")
+    parser.add_option("-D", "--startDate", action = "callback", 
+                      callback=makeDate, type="string", 
+                      default=datetime(2013, 7, 25, 1, 1, 1), dest="startDate", 
+                      help="The earliest time point to use in this run. " + 
+                      "Format: \"12,31,2001,1,1,1\"")
+    parser.add_option("-v", "--verbose", action = "store_true", default=False, 
+                      dest="verbose", help="Print out detailed log data.")
     (opts, args) = parser.parse_args()
     return opts
 
@@ -299,15 +359,18 @@ def main():
     #Install exit handler - program will exit when it receives SIGINT
     signal.signal(signal.SIGINT, exit_handler)
 
-    print "Welcome to the FoREST-cat program for detecting errors and rare events in data from multiple sensory modalities."
+    print "Welcome to the FoREST-cat program for detecting errors and" + \
+        " rare events in data from multiple sensory modalities."
 
     #Initialize data
     if not opts.test:
         try:
-            subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
+            subprocess.check_call(["rsync", "-e", "ssh", "-avz", 
+                                   opts.pullLocation, "."])
         except Exception as e:
             log("Call to rsync failed")
-            sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
+            sendEmail("Call to rsync failed with exception " + str(e), 
+                      "rsync fail", "seaotternerd@gmail.com")
         else:
             log("call to rsync successful")
 
@@ -324,16 +387,17 @@ def main():
         log("Loaded RAVQ")
         
         #if we are loading a pre-existing RAVQ, we need to 
-        #do this after loading it, so we know when the start date is
+        #load sensors after loading it, so we know when the start date is
         log("loading sensors")
         sensors = SensorArray(opts.config, opts.startDate)
         initData = sensors.getNext(opts.timeInt) #this doesn't get input
         #if we want to be really efficient, fix this one day
         log("sensors loaded")
         saveToFile("sensors", sensors)
+
     else:
         #if we aren't loading a pre-existing RAVQ, we need to 
-        #do this before generating the new one, so we know 
+        #load sensors before generating the new one, so we know 
         #how many sensors there are
         log("loading sensors")
         sensors = SensorArray(opts.config, opts.startDate)
@@ -343,7 +407,8 @@ def main():
         saveToFile("sensors", sensors)
     
         log("Generating new RAVQ...")
-        r = ARAVQ(opts.bufferSize, opts.epsilon, opts.delta, len(initData), opts.historySize, opts.learningRate)
+        r = ARAVQ(opts.bufferSize, opts.epsilon, opts.delta, len(initData),
+                  opts.historySize, opts.learningRate)
         log("RAVQ generated.")
 
     #Set up Amazon Web Services stuff
@@ -360,7 +425,8 @@ def main():
             lifecycle.append(rule)
         bucket.configure_lifecycle(lifecycle)
 
-    today = {0: datetime.date(datetime.now())} #dictionary so it can modified in handler
+    #This is a dictionary so it can modified in the handler
+    today = {0: datetime.date(datetime.now())}
 
     def alarm_handler(signum, frame):
         """
@@ -371,13 +437,16 @@ def main():
         log("Starting processing...")
 
         #get data
-        #check for updates with rsync - RSA keys need to be appropriately configured for this to work
+        #check for updates with rsync - RSA keys need to be 
+        #appropriately configured for this to work
         if not opts.test:
             try:
-                subprocess.check_call(["rsync", "-e", "ssh", "-avz", opts.pullLocation, "."])
+                subprocess.check_call(["rsync", "-e", "ssh", "-avz", 
+                                       opts.pullLocation, "."])
             except Exception as e:
                 log("Call to rsync failed")
-                #sendEmail("Call to rsync failed with exception " + str(e), "rsync fail", "seaotternerd@gmail.com")
+                sendEmail("Call to rsync failed with exception " + str(e), 
+                          "rsync fail", "seaotternerd@gmail.com")
             else:
                 log("call to rsync successful")
                 sensors.getData()
@@ -389,27 +458,32 @@ def main():
         while sensors.keepGoing:
             #Get data
             data = sensors.getNext(opts.timeInt)
-            log("Data retrieved")
+            if opts.verbose:
+                log("Data retrieved")
 
             #send data to RAVQ
             vec, errs = r.input(data, r.prevVec)[2:]
-            log("Input processed: " + str(vec))
+            if opts.verbose:
+                log("Input processed: " + str(vec))
 
             states.append((r.newWinnerIndex, sensors.currTime))
 
             #Handle events - Check for both event types
             if r.newWinnerIndex != r.previousWinnerIndex:
-                ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, data[0].time, "state transition")
+                ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, 
+                           data[0].time, "state transition")
                 if not r.eventState:
                     eventAlertTransition(ev)
                     r.eventState = True
-
+                
                 log("Potential event: " + str(ev))
-                events.append(str(ev.prevState) + ", " + str(ev.newState) + ", " 
-                         + str(ev.vector) + ", " + str(ev.time) + ", " + ev.reason + "\n")
+                events.append(str(ev.prevState) + ", " + str(ev.newState) 
+                           + ", " + str(ev.vector) + ", " + str(ev.time) 
+                           + ", " + ev.reason + "\n")
 
             elif len(errs) > len(sensors)*opts.eventThreshold:
-                ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, data[0].time, "anomalous number of errors")
+                ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, 
+                           data[0].time, "anomalous number of errors")
                 if not r.eventState:
                     eventAlertAnomalous(ev)
                     r.eventState = True
@@ -422,13 +496,18 @@ def main():
                     if not e.sensor.errorState:
                         errorAlert(e)
                         e.sensor.errorState = True
-                    errors.append(e.sensor + ", " + str(e.time) + ", " + str(e.value) + ", " 
-                               + e.flag + ", " + str(e.replace) + "\n")
+                    errors.append(e.sensor + ", " + str(e.time) + ", " 
+                               + str(e.value) + ", " + e.flag + ", " 
+                               + str(e.replace) + "\n")
            
             else:
                 r.eventState = False
-            log("Timestep complete.\n")
+            
+            if opts.verbose:
+                log("Timestep complete.\n")
 
+            if sensors.currTime.hour == 0:
+                log("Day is now " + str(sensors.currTime))
         if not opts.test:
             #If this is a test, we don't expect more data to appear
             signal.alarm(60*opts.refreshRate) #set next alarm
@@ -442,7 +521,9 @@ def main():
 
         #If it's a new day, archive files in S3
         if today[0] != datetime.date(datetime.now()) and not opts.test:
-            for item in ["log", "ravq", "events", "errors", "states"]:
+            for item in ["log"+opts.ident, "ravq"+opts.ident, \
+                     "events"+opts.ident, "errors"+opts.ident, \
+                      "states"+opts.ident]:
                 #store in s3
                 try: #exception handling in boto documentation is kind of vague
                     key = boto.s3.key.Key(bucket)
@@ -460,7 +541,7 @@ def main():
             print today, datetime.date(datetime.now())
     
     signal.signal(signal.SIGALRM, alarm_handler)
-    signal.alarm(.01) #go off once at start-up
+    signal.alarm(1) #go off once at start-up
     while True:
         signal.pause() #process sleeps until alarm goes off
 

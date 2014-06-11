@@ -48,6 +48,7 @@ def findNormVals(name):
     This is a horrible horrible function. It is designed exclusively
     for the purpose of matching variable names with hard-coded values
     as quickly as possibly, in the Hubbard Brook context specifically.
+    At some point it should be replaced with something better.
     Input: name - a string indicating the name of the variable in datafiles.
     Returns: a tuple containing the minimum possible value for this
     variable, the maximum, and the label of the variable.
@@ -77,7 +78,8 @@ def findNormVals(name):
         else:
             print name, "not found in lookup table"
     
-    elif len(name) >= 2 and ((name[0]=="air" and name[1][:4]=="temp") or name[0]=="airtc"):
+    elif len(name) >= 2 and ((name[0]=="air" and name[1][:4]=="temp") or 
+                     name[0]=="airtc"):
         return (-40, 60, "air temperature (c)")
         
     elif len(name) == 3 and name[2] == "avg":
@@ -133,7 +135,8 @@ def convertDateTime(datestring):
 
     try: #MATLAB format
         datestring=float(datestring)
-        return datetime.fromordinal(int(datestring)) + timedelta(days=datestring%1) - timedelta(days = 366)
+        return datetime.fromordinal(int(datestring)) + \
+            timedelta(days=datestring%1) - timedelta(days = 366)
 
     except ValueError: #Hubbard Brook Format
         try:
@@ -201,12 +204,17 @@ class rtSensorStream:
 
         self.currTime = stream.currTime #The time that this sensor thinks it is
         self.lastVal = stream.lastVal #The last value emitted by this sensor.
-        self.freq = stream.freq #How frequently does this sensor take measurements?
-        self.errorState = stream.errorState #Is this sensor currently in an errorState?
-                          #(used to avoid sending too many e-mails)
+        self.freq = stream.freq #How frequently does this sensor take 
+        #measurements? 
+
+        #Is this sensor currently in an errorState?
+        #(used to avoid sending too many e-mails)
+        self.errorState = stream.errorState 
     """
     def __str__(self):
-        return self.source + " " + self.name + " " + self.label + " " + str(self.range) + ": " + str(self.valBuffer[:min(5, len(self.valBuffer))]) + ("..." if len(self.valBuffer) > 5 else "")
+        return self.source + " " + self.name + " " + self.label + " " + \
+            str(self.range) + ": " + str(self.valBuffer[:min(5, 
+            len(self.valBuffer))]) + ("..." if len(self.valBuffer) > 5 else "")
     
     def next(self, time):
         """
@@ -292,7 +300,8 @@ class rtSensorStream:
             i = 0
             while self.valBuffer[i].time < time:
                 i += 1
-            self.valBuffer.insert(i, rtSensorValue(self, time, self.normalize(val)))
+            self.valBuffer.insert(i, rtSensorValue(self, time, 
+                              self.normalize(val)))
             if i == 0:
                 self.currTime = time
 
@@ -303,7 +312,8 @@ class rtSensorStream:
         
         else:
             #we can just add the value to the back
-            self.valBuffer.append(rtSensorValue(self, time, self.normalize(val)))
+            self.valBuffer.append(rtSensorValue(self, time, 
+                               self.normalize(val)))
             if len(self.valBuffer) == 1:
                 self.currTime = time
 
@@ -328,14 +338,16 @@ class SensorArray:
         for key in nameVarDict.keys():
             if key.find("+") != -1: #sometimes data is split across files
                 sKey = key.split("+") #the "+" shortcut handles that
-                senseList = [rtSensorStream(i, sKey[0]) for i in nameVarDict[key]]
+                senseList = [rtSensorStream(i, sKey[0]) for i in 
+                             nameVarDict[key]]
                 self.n += len(senseList)
 
                 #store pointer to same object in both dicts
                 self.nameSenseDict[sKey[0]] = senseList
                 self.nameSenseDict[sKey[1]] = senseList
             else:
-                self.nameSenseDict[key] = [rtSensorStream(i, key) for i in nameVarDict[key]]
+                self.nameSenseDict[key] = [rtSensorStream(i, key) for i 
+                            in nameVarDict[key]]
                 self.n += len(self.nameSenseDict[key])
 
         self.getData()
@@ -389,10 +401,11 @@ class SensorArray:
         changed a bit to work in a situation where the data were actually
         arriving in completely real time.
         """
-        for key in self.nameSenseDict.keys():
-            for sensor in self.nameSenseDict[key]:
+        for val in self.nameSenseDict.values():
+            for sensor in val:
                 if len(sensor.valBuffer) > 1:
-                    sensor.freq = sensor.valBuffer[1].time - sensor.valBuffer[0].time
+                    sensor.freq = sensor.valBuffer[1].time - \
+                        sensor.valBuffer[0].time
 
     def pollCurrTimes(self):
         """
@@ -403,8 +416,8 @@ class SensorArray:
         be the latest time of any item in the next vector. Therefore,
         we set currTime to the latest currTime available.
         """
-        for key in self.nameSenseDict.keys():
-            for sensor in self.nameSenseDict[key]:
+        for val in self.nameSenseDict.values():
+            for sensor in val:
                 if sensor.currTime != None and sensor.currTime  > self.currTime:
                     self.currTime = sensor.currTime
 
@@ -414,7 +427,7 @@ class SensorArray:
         later than the current time for each sensor to the sensor
         buffers.
         """
-        for key in self.nameSenseDict.keys(): #keys are file names
+        for key in self.nameSenseDict: #keys are file names
             infile = open("RTD/"+key)
             infile.readline() #Skip header
 
@@ -453,7 +466,8 @@ class SensorArray:
                     except ValueError: #not a number
                         sline[indices[i]] = float("nan")
                     #add data to buffer
-                    self.nameSenseDict[key][i].addToBuff(sline[indices[i]], sline[0])
+                    self.nameSenseDict[key][i].addToBuff(sline[indices[i]], 
+                                                         sline[0])
 
             infile.close()
             
@@ -465,11 +479,11 @@ class SensorArray:
 
         #Make sure everything is at the right time
         self.pollCurrTimes()
-        for key in self.nameSenseDict.keys():
+        for val in self.nameSenseDict.values():
             #In case timeInt > sensor.freq, make
             #sure that all sensors have the latest
             #possible value up next
-            for sensor in self.nameSenseDict[key]:
+            for sensor in val:
                 sensor.sync(self.currTime)
         
 class rtSensorValue():
@@ -495,7 +509,8 @@ class rtSensorValue():
             self.flag = "Missing" #replaced although not yet
 
         if self.value < 0 or self.value > 1: 
-            #print value, sensor.getOrigVal(value), "value out of range from", sensor
+            #print value, sensor.getOrigVal(value), 
+            #"value out of range from", sensor
             self.value = float("nan")
             self.replaced = True
             self.flag = "Out of range"
