@@ -1,4 +1,4 @@
- #!/usr/bin/python
+#!/usr/bin/python
 
 """
 FoREST-cat is a program for detecting errors and rare events in real-time 
