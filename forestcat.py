@@ -39,16 +39,17 @@ from datetime import datetime
 import os, sys, pickle, smtplib, signal, subprocess, shutil
 import matplotlib.pyplot as plt
 
-def log(text):
+def log(text, ident):
     """
     Automated function for making log entries. Text is the text of the entry.
     Returns boolean indicating success
     """
     try: #we don't want this crashing on non-critical exceptions
-        if os.path.exists("log"):
-            logfile = open("log", "a")
+        filename = "log"+ident
+        if os.path.exists(filename):
+            logfile = open(filename, "a")
         else:
-            logile = open("log", "w+")
+            logfile = open(filename, "w+")
         logfile.write(str(datetime.now()) + ": " + str(text)+"\n")
         logfile.close()
     except Exception as e:
@@ -56,7 +57,7 @@ def log(text):
               "while trying to make log entry: " + str(datetime.now()) 
               + ": " + text, "FoREST-cat log file", "seaotternerd@gmail.com")
 
-def sendEmail(sendStr, subject, recepient="seaotternerd@gmail.com"):
+def sendEmail(sendStr, subject, ident, recepient="seaotternerd@gmail.com"):
     """
     Sends an e-mail to the predesignated list of people.
     Inputs: sendstr = the text of the e-mail to send (string)
@@ -76,14 +77,14 @@ def sendEmail(sendStr, subject, recepient="seaotternerd@gmail.com"):
         s.login(sender, "mirrorlake")
         s.sendmail("sender", ["seaotternerd@gmail.com"], msg.as_string())
         s.quit()
-        log("E-mail sent! Subject:" + subject)
+        log("E-mail sent! Subject:" + subject, ident)
         return True
 
     except Exception as e:
-        log("Attempt to send e-mail failed with exception " + str(e))
+        log("Attempt to send e-mail failed with exception " + str(e), ident)
         return False
 
-def errorAlert(err):
+def errorAlert(err, ident):
     """
     Sends a standardized error alert message out to standard set of recipients.
     Input: err - an error object to be reported on
@@ -104,9 +105,9 @@ def errorAlert(err):
            "Y7UiKi1SWZB1-c/viewform?entry.1751902321=Cannot+be+determined&" +\
            "entry.1322398871=Maybe&entry.1034004670=Unknown&entry.234465177\n\n"
     msg += "Something wrong? E-mail the developer at EmilyLDolson@gmail.com."
-    return sendEmail(msg, "Potential sensor error", "EmilyLDolson@gmail.com")
+    return sendEmail(msg, "Potential sensor error", ident, "EmilyLDolson@gmail.com")
 
-def eventAlertTransition(eve):
+def eventAlertTransition(eve, ident):
     """
     Sends a standardized transition event alert out to standard recipients.
     Input: eve - an event object to be reported on.
@@ -129,9 +130,9 @@ def eventAlertTransition(eve):
            "y.2112662628=Transition&entry.1322398871=Maybe&entry.1034004670&" +\
            "entry.234465177\n\n"
     msg += "Something wrong? E-mail the developer at EmilyLDolson@gmail.com."
-    return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
+    return sendEmail(msg, "Potential rare event", ident, "EmilyLDolson@gmail.com")
 
-def eventAlertAnomalous(eve):
+def eventAlertAnomalous(eve, ident):
     """
     Sends a standardized transition event alert out to standard recipients.
     Input: eve - an event object to be reported on.
@@ -150,23 +151,24 @@ def eventAlertAnomalous(eve):
            ".2112662628=Anomalous+values&entry.1322398871=Maybe&entry.103400" +\
            "4670&entry.234465177\n\n"
     msg += "Something wrong? E-mail the developer at EmilyLDolson@gmail.com."
-    return sendEmail(msg, "Potential rare event", "EmilyLDolson@gmail.com")
+    return sendEmail(msg, "Potential rare event", ident, "EmilyLDolson@gmail.com")
 
 def saveStateInfo(ravq, sensors, ident):
     outfile = open("state_info"+ident+".csv", "w")
 
-    senseList = []
+    senseList = ["State"]
     for i in range(len(sensors)):
         senseList.append(sensors[i].source + "-" + sensors[i].name)
 
     outfile.write(",".join(senseList))
+    outfile.write("\n")
 
-    for model in ravq.models:
-        outfile.write(",".join([str(i) for i in model.vector]) + "\n")
+    for m in range(len(ravq.models)):
+        outfile.write(",".join([str(m)]+[str(i) for i in ravq.models[m].vector]) + "\n")
 
     outfile.close()
 
-def saveToFile(filename, thing):
+def saveToFile(filename, thing, ident=""):
     """
     Generic pickling wrapper, stores a pickled version of "thing" in the 
     file denoted by the filename string. Returns boolean indicating success.
@@ -179,17 +181,18 @@ def saveToFile(filename, thing):
         return True
 
     except Exception as e:
-        log("Attempt to pickle a thing failed with exception " + str(e))
+        log("Attempt to pickle a thing failed with exception " + str(e), ident)
         sendEmail("Received execption " + str(e) + 
                  "while trying to pickle a thing at " + str(datetime.now()), 
-                  "FoREST-cat pickle fail", "seaotternerd@gmail.com")
+                  "FoREST-cat pickle fail", ident, "seaotternerd@gmail.com")
         return False
 
-def loadFromFile(filename):
+def loadFromFile(filename, ident=""):
     """
     Generic unpickling wrapper, loads whatever pickled object is stored 
     in the file denoted by the filename string.
     """
+    filename += ident
     try: #we don't want this crashing on non-critical exceptions
         fp = open(filename, 'r')
         unpick = pickle.Unpickler(fp)
@@ -198,10 +201,11 @@ def loadFromFile(filename):
         return result
     
     except Exception as e:
-        log("Attempt to unpickle a thing failed with exception " + str(e))
+        log("Attempt to unpickle a thing failed with exception " + str(e), 
+            ident)
         sendEmail("Received execption " + str(e) + 
                   "while trying to unpickle a thing at " + str(now()), 
-                  "FoREST-cat unpickle fail", "seaotternerd@gmail.com")
+                  "FoREST-cat unpickle fail", ident, "seaotternerd@gmail.com")
         return None
 
 def call_rsync(opts):
@@ -209,12 +213,12 @@ def call_rsync(opts):
         subprocess.check_call(["rsync", "-e", "ssh", "-avz", 
                                    opts.pullLocation, "."])
     except Exception as e:
-        log("Call to rsync failed")
+        log("Call to rsync failed", opts.ident)
         sendEmail("Call to rsync failed with exception " + str(e), 
-                      "rsync fail", "seaotternerd@gmail.com")
+                      "rsync fail", opts.ident, "seaotternerd@gmail.com")
         return False
     else:
-        log("call to rsync successful")
+        log("call to rsync successful", opts.ident)
         return True
 
 def makeDate(option, opt, value, parser):
@@ -224,7 +228,7 @@ def makeDate(option, opt, value, parser):
     by commas.
     """
     args = [int(i) for i in value.split(",")]
-    return datetime(*args)
+    setattr(parser.values, option.dest, datetime(*args))
 
 def saveProgress(states, errors, events, sensors, r, ident):
     """
@@ -239,7 +243,7 @@ def saveProgress(states, errors, events, sensors, r, ident):
     for state in states:
         stateFile.write(str(",".join(str(i) for i in state)) +"\n")
     stateFile.close() 
-    log("States written to file")
+    log("States written to file", ident)
 
     #Save errors if there are any
     if len(errors) > 0 :
@@ -251,7 +255,7 @@ def saveProgress(states, errors, events, sensors, r, ident):
         for error in errors:
             errorFile.write(error)
         errorFile.close()
-        log("Errors written to file.")
+        log("Errors written to file.", ident)
 
     #Save events if there are any
     if len(events) > 0:
@@ -263,13 +267,13 @@ def saveProgress(states, errors, events, sensors, r, ident):
         for event in events:
             eventFile.write(str(event))
         eventFile.close()
-        log("Events written to file")
+        log("Events written to file", ident)
 
     #save RAVQ
-    saveToFile("ravq"+ident, r)
-    saveToFile("time"+ident, sensors.currTime)
+    saveToFile("ravq"+ident, r, ident)
+    saveToFile("time"+ident, sensors.currTime, ident)
     saveStateInfo(r, sensors, ident)
-    log("RAVQ stored.")
+    log("RAVQ stored.", ident)
 
 def saveOldFiles(ident):
     """
@@ -357,16 +361,16 @@ def main():
         Handle exit smoothly and save progress
         """
         print "Thank you for using FoREST-Cat. Saving progress."
-        log("Recieved exit command. Saving progress\n")
+        log("Recieved exit command. Saving progress\n", opts.ident)
         if "states" not in globals():
             states = []
             errors = []
             events = []
         if "sensors" in dir() and "r" in dir():
             saveProgress(states, errors, events, sensors, r, opts.ident)
-            log("Progress saved.\n")
+            log("Progress saved.\n", opts.ident)
         print "Exiting..."
-        log("Exiting...\n\n")
+        log("Exiting...\n\n", opts.ident)
         exit(0)
 
     #Install exit handler - program will exit when it receives SIGINT
@@ -377,44 +381,44 @@ def main():
 
     #Initialize data
     if not opts.test:
-        callRsync(opts)
+        call_rsync(opts)
 
     #Initialize ravq
     if opts.restart:
         print "Loading stored ravq from file..."
-        r = loadFromFile("ravq"+opts.ident) #default file for storing ravq
-        opts.startDate = loadFromFile("time"+opts.ident)
+        r = loadFromFile("ravq", opts.ident) 
+        opts.startDate = loadFromFile("time", opts.ident)
         if r == None or opts.startDate == None:
-            log("Failed to load RAVQ. Closing...")
+            log("Failed to load RAVQ. Closing...", opts.ident)
             sendEmail("Failed to load RAVQ, FoREST-cat is closing.", 
-                  "FoREST-cat load fail", "seaotternerd@gmail.com")
+                "FoREST-cat load fail",  opts.ident, "seaotternerd@gmail.com")
             exit()
-        log("Loaded RAVQ")
+        log("Loaded RAVQ", opts.ident)
         
         #if we are loading a pre-existing RAVQ, we need to 
         #load sensors after loading it, so we know when the start date is
-        log("loading sensors")
+        log("loading sensors", opts.ident)
         sensors = SensorArray(opts.config, opts.startDate)
         initData = sensors.getNext(opts.timeInt) #this doesn't get input
         #if we want to be really efficient, fix this one day
-        log("sensors loaded")
-        saveToFile("sensors", sensors)
-
+        log("sensors loaded", opts.ident)
+        saveToFile("sensors", sensors, opts.ident)
+ 
     else:
         #if we aren't loading a pre-existing RAVQ, we need to 
         #load sensors before generating the new one, so we know 
         #how many sensors there are
-        log("loading sensors")
+        log("loading sensors", opts.ident)
         sensors = SensorArray(opts.config, opts.startDate)
         initData = sensors.getNext(opts.timeInt) #this doesn't get input
         #if we want to be really efficient, fix this one day
-        log("sensors loaded")
-        saveToFile("sensors", sensors)
+        log("sensors loaded", opts.ident)
+        saveToFile("sensors", sensors, opts.ident)
     
-        log("Generating new RAVQ...")
+        log("Generating new RAVQ...", opts.ident)
         r = ARAVQ(opts.bufferSize, opts.epsilon, opts.delta, len(initData),
                   opts.historySize, opts.learningRate)
-        log("RAVQ generated.")
+        log("RAVQ generated.", opts.ident)
 
     #Set up Amazon Web Services stuff
     if not opts.test:
@@ -439,7 +443,7 @@ def main():
         It is defined here so that it will have access to main() local
         variables. This supports an event-driven design.
         """
-        log("Starting processing...")
+        log("Starting processing...", opts.ident)
 
         #get data
         #check for updates with rsync - RSA keys need to be 
@@ -456,12 +460,11 @@ def main():
             #Get data
             data = sensors.getNext(opts.timeInt)
             if opts.verbose:
-                log("Data retrieved")
-
+                log("Data retrieved", opts.ident)
             #send data to RAVQ
             vec, errs = r.input(data, r.prevVec)[2:]
             if opts.verbose:
-                log("Input processed: " + str(vec))
+                log("Input processed: " + str(vec), opts.ident)
 
             states.append((r.newWinnerIndex, sensors.currTime))
 
@@ -470,9 +473,9 @@ def main():
                 ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, 
                            data[0].time, "state transition")
                 if not r.eventState:
-                    eventAlertTransition(ev)
+                    eventAlertTransition(ev, opts.ident)
                     r.eventState = True
-                log("Potential event: " + str(ev))
+                log("Potential event: " + str(ev), opts.ident)
                 events.append(str(ev.prevState) + ", " + str(ev.newState) 
                            + ", " + str(ev.vector) + ", " + str(ev.time) 
                            + ", " + ev.reason + "\n")
@@ -481,16 +484,16 @@ def main():
                 ev = Event(r.previousWinnerIndex, r.newWinnerIndex, vec, 
                            data[0].time, "anomalous number of errors")
                 if not r.eventState:
-                    eventAlertAnomalous(ev)
+                    eventAlertAnomalous(ev, opts.ident)
                     r.eventState = True
-                log("Potential event: " + str(ev))
+                log("Potential event: " + str(ev), opts.ident)
                 events.append(ev)
             
             elif len(errs) > 0: #Handle errors
                 for e in errs:
-                    log(str(e))
+                    log(str(e), opts.ident)
                     if not e.sensor.errorState:
-                        errorAlert(e)
+                        errorAlert(e,  opts.ident)
                         e.sensor.errorState = True
                     errors.append(e.sensor + ", " + str(e.time) + ", " 
                                + str(e.value) + ", " + e.flag + ", " 
@@ -500,19 +503,20 @@ def main():
                 r.eventState = False
             
             if opts.verbose:
-                log("Timestep complete.\n")
+                log("Timestep complete.\n", opts.ident)
 
             if sensors.currTime.hour == 0 and sensors.currTime.minute == 0:
-                log("Day is now " + str(sensors.currTime))
+                log("Day is now " + str(sensors.currTime), opts.ident)
         if not opts.test:
             #If this is a test, we don't expect more data to appear
             signal.alarm(60*opts.refreshRate) #set next alarm
-        log("Buffer emptied.\n\n")
+        log("Buffer emptied.\n\n", opts.ident)
 
         #Save stuff
-        saveProgress(states, errors, events, sensors, r)
+        saveProgress(states, errors, events, sensors, r, opts.ident)
 
         if opts.test: #tests don't need to run indefinitely
+            log("Since this is test mode, exiting...", opts.ident)
             exit(0)
 
         #If it's a new day, archive files in S3
